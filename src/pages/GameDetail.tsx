@@ -1,0 +1,105 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import type { GameRow, GamePlayerRow } from "../lib/types";
+import { gameTypeLabel, teamLabel, CAMP_WIN } from "../lib/types";
+
+export default function GameDetail() {
+  const { gameId = "" } = useParams();
+  const [game, setGame] = useState<GameRow | null>(null);
+  const [players, setPlayers] = useState<GamePlayerRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      const [g, gp] = await Promise.all([
+        supabase
+          .from("game")
+          .select('gameID,date,roomType,mapType,ruleType,gameTime,title,winnerTeam,averageRating,liveType')
+          .eq("gameID", gameId)
+          .maybeSingle(),
+        supabase
+          .from("game_player")
+          .select('gameID,ano,nickname,campType,heroNo,mvpOdds')
+          .eq("gameID", gameId),
+      ]);
+      if (cancelled) return;
+      if (g.error || gp.error) setErr((g.error || gp.error)!.message);
+      setGame((g.data as GameRow) ?? null);
+      setPlayers((gp.data as GamePlayerRow[]) ?? []);
+      setLoading(false);
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId]);
+
+  // campType 별로 묶기
+  const camps = Array.from(new Set(players.map((p) => p.campType))).sort();
+
+  return (
+    <div className="page">
+      <h1>경기 {gameId}</h1>
+      {err && <div className="error">{err}</div>}
+      {loading ? (
+        <div className="muted">불러오는 중…</div>
+      ) : (
+        <>
+          {game && (
+            <div className="card">
+              <div className="kv">
+                <span>유형</span> <b>{gameTypeLabel(game.roomType)}</b>
+                <span>일시</span> <b>{game.date}</b>
+                <span>승리팀</span> <b>{game.winnerTeam}</b>
+                <span>맵</span> <b>{game.mapType ?? "-"}</b>
+                <span>평균레이팅</span> <b>{game.averageRating ?? "-"}</b>
+                <span>게임시간</span> <b>{game.gameTime ?? "-"}</b>
+              </div>
+            </div>
+          )}
+          {camps.map((c) => {
+            const isWinner = !!game && CAMP_WIN[c] === game.winnerTeam;
+            return (
+            <div className="card" key={c || "none"}>
+              <h2 className={isWinner ? "win" : ""}>
+                {teamLabel(c)} {isWinner ? "(승)" : ""}
+              </h2>
+              <table className="nick-table">
+                <thead>
+                  <tr>
+                    <th>닉네임</th>
+                    <th>영웅</th>
+                    <th>MVP</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {players
+                    .filter((p) => p.campType === c)
+                    .map((p) => (
+                      <tr key={p.ano}>
+                        <td>{p.nickname || "(닉 없음)"}</td>
+                        <td className="muted">{p.heroNo}</td>
+                        <td className="muted">{p.mvpOdds ?? "-"}</td>
+                        <td>
+                          <Link className="link" to={`/player/${encodeURIComponent(p.ano)}`}>
+                            전적
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
+}
