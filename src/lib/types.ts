@@ -104,6 +104,18 @@ export function scoreClass(score: number): "hi" | "mid" | "lo" {
   return "lo";
 }
 
+// 순위 (ranking RPC)
+export interface RankRow {
+  rnk: number;
+  ano: string;
+  nickname: string;
+  games: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  winrate: number;
+}
+
 // roomType -> 표시 라벨.
 // "2"=일반, "3"=랭크 는 실제 DB의 player_winrate_summary(normal/ranked) 와 대조해 확정.
 // "0","1" 은 의미가 불확실 → 폴백("타입 N")으로 표시. 알게 되면 여기만 고치면 됨.

@@ -197,6 +197,39 @@ revoke execute on function public.player_suspects(text), public.accounts_by_ip(t
 grant  execute on function public.player_suspects(text), public.accounts_by_ip(text) to authenticated;
 
 -- ============================================================================
+-- 4d) 순위 (승률 랭킹, 최소 게임수 필터). p_mode: 'total'|'normal'|'ranked'
+-- ============================================================================
+create or replace function public.ranking(p_mode text default 'total', p_min_games int default 50, p_limit int default 100)
+returns table(rnk bigint, ano text, nickname text, games int, wins int, draws int, losses int, winrate numeric)
+language sql stable as $$
+  with base as (
+    select ano,
+      case p_mode when 'ranked' then ranked_games when 'normal' then normal_games else total_games end as games,
+      case p_mode when 'ranked' then ranked_wins  when 'normal' then normal_wins  else total_wins  end as wins,
+      case p_mode when 'ranked' then ranked_draws when 'normal' then normal_draws else draws       end as draws
+    from player_winrate_summary
+  ),
+  filt as (
+    select ano, games, wins, draws, greatest(games-wins-draws,0) as losses,
+           round(100.0*wins/nullif(games,0),1) as winrate
+    from base where games >= p_min_games
+  ),
+  top as (
+    select *, row_number() over (order by wins::numeric/nullif(games,0) desc, games desc) as rnk
+    from filt order by rnk limit p_limit
+  )
+  select t.rnk, t.ano, coalesce(n.nickname,'') as nickname, t.games, t.wins, t.draws, t.losses, t.winrate
+  from top t
+  left join lateral (
+    select gp.nickname from game_player gp join game g on gp."gameID"=g."gameID"
+    where gp.ano=t.ano and gp.nickname<>'' order by g.date desc limit 1
+  ) n on true
+  order by t.rnk;
+$$;
+revoke execute on function public.ranking(text,int,int) from anon;
+grant  execute on function public.ranking(text,int,int) to authenticated;
+
+-- ============================================================================
 -- 5) 내 계정 1개 만들기 (개인용)
 --    Supabase 대시보드 > Authentication > Users > "Add user" 로 직접 생성하거나,
 --    Authentication > Providers > Email 에서 "Confirm email" 끈 뒤 앱에서 가입.
