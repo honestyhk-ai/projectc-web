@@ -221,7 +221,8 @@ language sql stable security definer set search_path = public, pg_temp as $$
   from base b left join player_summary ps on ps.ano = b.ano
   order by rnk;
 $$;
-revoke execute on function public.ranking(text) from anon;
+-- SECURITY DEFINER 함수는 생성 시 PUBLIC 에 실행권한이 기본 부여됨 → 반드시 public 까지 revoke.
+revoke execute on function public.ranking(text) from public, anon;
 grant  execute on function public.ranking(text) to authenticated;
 
 -- ============================================================================
