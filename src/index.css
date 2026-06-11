@@ -141,6 +141,25 @@ button:disabled { opacity: .6; cursor: default; }
 .shared-row .gc { margin-left: auto; font-size: 12px; }
 .self-badge { background: var(--accent); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
 
+/* ---- detail card ---- */
+.detail-grid { display: flex; flex-direction: column; gap: 2px; }
+.d-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.d-row:last-child { border-bottom: none; }
+.d-label { font-size: 13px; }
+.d-value { font-size: 13px; font-weight: 500; }
+
+/* ---- hero stats table ---- */
+.hero-table { width: 100%; border-collapse: collapse; }
+.hero-table th, .hero-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+.hero-table th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.hero-table td.c, .hero-table th.c { text-align: center; }
+.hero-table .hcell { display: flex; align-items: center; gap: 8px; }
+.hero-table .hno { font-size: 11px; }
+.hwr { font-weight: 600; }
+.hwr[data-hi="true"] { color: var(--win); }
+.hwr[data-hi="false"] { color: var(--loss); }
+.more-btn { margin-top: 10px; }
+
 /* ---- ranking ---- */
 .rank-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .rank-head h1 { margin: 0; font-size: 22px; }

@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import type { WinrateSummary, RecentGame, NickHistoryRow } from "../lib/types";
+import type { WinrateSummary, RecentGame, NickHistoryRow, PlayerOverview } from "../lib/types";
 import WinRateCard from "../components/WinRateCard";
 import RecentGames from "../components/RecentGames";
 import NickHistory from "../components/NickHistory";
 import IpPanel from "../components/IpPanel";
 import SuspectPanel from "../components/SuspectPanel";
+import HeroStats from "../components/HeroStats";
+import DetailCard from "../components/DetailCard";
 
 export default function Profile() {
   const { ano = "" } = useParams();
   const [summary, setSummary] = useState<WinrateSummary | null>(null);
   const [games, setGames] = useState<RecentGame[]>([]);
   const [nicks, setNicks] = useState<NickHistoryRow[]>([]);
+  const [overview, setOverview] = useState<PlayerOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -21,17 +24,19 @@ export default function Profile() {
     async function load() {
       setLoading(true);
       setErr(null);
-      const [wr, rg, nh] = await Promise.all([
+      const [wr, rg, nh, ov] = await Promise.all([
         supabase.from("player_winrate_summary").select("*").eq("ano", ano).maybeSingle(),
         supabase.rpc("player_recent_games", { p_ano: ano, p_limit: 30 }),
         supabase.rpc("player_nick_history", { p_ano: ano }),
+        supabase.rpc("player_overview", { p_ano: ano }),
       ]);
       if (cancelled) return;
-      const firstErr = wr.error || rg.error || nh.error;
+      const firstErr = wr.error || rg.error || nh.error || ov.error;
       if (firstErr) setErr(firstErr.message);
       setSummary((wr.data as WinrateSummary) ?? null);
       setGames((rg.data as RecentGame[]) ?? []);
       setNicks((nh.data as NickHistoryRow[]) ?? []);
+      setOverview(((ov.data as PlayerOverview[]) ?? [])[0] ?? null);
       setLoading(false);
     }
     void load();
@@ -53,19 +58,22 @@ export default function Profile() {
       {loading ? (
         <div className="muted">불러오는 중…</div>
       ) : (
-        <div className="profile-grid">
-          <div className="col-left">
-            <WinRateCard s={summary} />
-            <NickHistory rows={nicks} />
+        <>
+          <div className="profile-grid">
+            <div className="col-left">
+              <DetailCard ano={ano} overview={overview} summary={summary} />
+              <WinRateCard s={summary} />
+              <NickHistory rows={nicks} />
+            </div>
+            <div className="col-right">
+              <HeroStats ano={ano} />
+              <RecentGames games={games} />
+            </div>
           </div>
-          <div className="col-right">
-            <RecentGames games={games} />
-          </div>
-        </div>
+          <SuspectPanel ano={ano} />
+          <IpPanel ano={ano} />
+        </>
       )}
-
-      {!loading && <SuspectPanel ano={ano} />}
-      {!loading && <IpPanel ano={ano} />}
     </div>
   );
 }

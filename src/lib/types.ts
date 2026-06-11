@@ -98,6 +98,24 @@ export interface IpSearchRow {
   ip_total: number;
 }
 
+// 주력 영웅 (player_heroes RPC)
+export interface HeroStat {
+  hero_no: string;
+  games: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winrate: number | null;
+}
+
+// 플레이어 개요 (player_overview RPC)
+export interface PlayerOverview {
+  first_seen: string;
+  last_seen: string;
+  ip_count: number;
+  total_games: number;
+}
+
 export function scoreClass(score: number): "hi" | "mid" | "lo" {
   if (score >= 0.9) return "hi";
   if (score >= 0.8) return "mid";

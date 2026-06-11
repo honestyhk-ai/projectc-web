@@ -226,6 +226,40 @@ revoke execute on function public.ranking(text) from public, anon;
 grant  execute on function public.ranking(text) to authenticated;
 
 -- ============================================================================
+-- 4e) 프로필 상세 (주력 영웅 + 개요)
+-- ============================================================================
+-- 영웅별 게임수·승패·승률 (영웅 이름 매핑은 없어 heroNo + 초상화로 표시)
+create or replace function public.player_heroes(p_ano text)
+returns table(hero_no text, games bigint, wins bigint, losses bigint, draws bigint, winrate numeric)
+language sql stable as $$
+  with g2 as (
+    select gp."heroNo" hn, g."winnerTeam" wt, gp."campType" ct
+    from game_player gp join game g on gp."gameID"=g."gameID"
+    where gp.ano=p_ano and gp."heroNo"<>''
+  )
+  select hn, count(*) games,
+    count(*) filter (where wt in ('E','U') and ((ct='0' and wt='E') or (ct='1' and wt='U'))) wins,
+    count(*) filter (where wt in ('E','U') and not ((ct='0' and wt='E') or (ct='1' and wt='U'))) losses,
+    count(*) filter (where wt not in ('E','U')) draws,
+    round(100.0*count(*) filter (where wt in ('E','U') and ((ct='0' and wt='E') or (ct='1' and wt='U')))
+          / nullif(count(*) filter (where wt in ('E','U')),0),1) winrate
+  from g2 group by hn order by games desc;
+$$;
+
+-- 개요: 첫/마지막 게임, 사용 IP 수, 전체 게임 수
+create or replace function public.player_overview(p_ano text)
+returns table(first_seen text, last_seen text, ip_count int, total_games bigint)
+language sql stable as $$
+  select min(g.date), max(g.date),
+    (select count(distinct ip)::int from player_ip where ano=p_ano and ip<>''),
+    count(distinct gp."gameID")
+  from game_player gp join game g on gp."gameID"=g."gameID" where gp.ano=p_ano;
+$$;
+
+revoke execute on function public.player_heroes(text), public.player_overview(text) from public, anon;
+grant  execute on function public.player_heroes(text), public.player_overview(text) to authenticated;
+
+-- ============================================================================
 -- 5) 내 계정 1개 만들기 (개인용)
 --    Supabase 대시보드 > Authentication > Users > "Add user" 로 직접 생성하거나,
 --    Authentication > Providers > Email 에서 "Confirm email" 끈 뒤 앱에서 가입.
