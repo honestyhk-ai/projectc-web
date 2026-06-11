@@ -111,3 +111,17 @@ button:disabled { opacity: .6; cursor: default; }
 
 .kv { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 12px; }
 .kv span { color: var(--muted); }
+
+/* ---- IP panel ---- */
+.ip-card h3.ip-sub { font-size: 13px; margin: 4px 0 8px; color: var(--text); }
+.ip-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
+@media (max-width: 720px) { .ip-grid { grid-template-columns: 1fr; } }
+.shared-list { max-height: 460px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.shared-ip { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.shared-ip-head { font-weight: 600; font-family: monospace; margin-bottom: 6px; }
+.shared-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-top: 1px solid var(--line); }
+.shared-row:first-of-type { border-top: none; }
+.shared-row.self { background: rgba(38,79,120,.25); border-radius: 4px; padding-left: 6px; }
+.shared-row .ano { font-size: 12px; }
+.shared-row .gc { margin-left: auto; font-size: 12px; }
+.self-badge { background: var(--accent); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; }

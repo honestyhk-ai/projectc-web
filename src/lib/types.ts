@@ -62,6 +62,21 @@ export interface GamePlayerRow {
   mvpOdds: string | null;
 }
 
+// IP 기능 (player_ip / game_player.ip 기반). 저장된 ip 는 앞 2옥텟 프리픽스.
+export interface IpRow {
+  ip: string;
+  first_seen: string;
+  last_seen: string;
+  game_count: number;
+}
+
+export interface SharedAccountRow {
+  ip: string;
+  ano: string;
+  nickname: string;
+  game_count: number;
+}
+
 // roomType -> 표시 라벨.
 // "2"=일반, "3"=랭크 는 실제 DB의 player_winrate_summary(normal/ranked) 와 대조해 확정.
 // "0","1" 은 의미가 불확실 → 폴백("타입 N")으로 표시. 알게 되면 여기만 고치면 됨.

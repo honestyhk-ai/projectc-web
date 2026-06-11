@@ -99,6 +99,51 @@ grant  execute on function public.player_recent_games(text,int) to authenticated
 grant  execute on function public.player_nick_history(text)    to authenticated;
 
 -- ============================================================================
+-- 4b) IP 기능 (로그인 사용자 전용 — 절대 공개 금지)
+--   저장된 ip 는 앞 2옥텟 프리픽스(원본 수집기가 부분 익명화). 공유 IP = 부계정 신호.
+-- ============================================================================
+grant select on public.player_ip to authenticated;
+drop policy if exists "auth read pip" on public.player_ip;
+create policy "auth read pip" on public.player_ip for select to authenticated using (true);
+
+-- 플레이어가 사용한 IP 목록
+create or replace function public.player_ips(p_ano text)
+returns table(ip text, first_seen text, last_seen text, game_count bigint)
+language sql stable as $$
+  select gp.ip, min(g.date) as first_seen, max(g.date) as last_seen,
+         count(distinct gp."gameID") as game_count
+  from game_player gp join game g on gp."gameID" = g."gameID"
+  where gp.ano = p_ano and gp.ip <> ''
+  group by gp.ip order by first_seen;
+$$;
+
+-- 같은 IP를 공유하는 계정들 (IP별)
+create or replace function public.ip_shared_accounts(p_ano text)
+returns table(ip text, ano text, nickname text, game_count bigint)
+language sql stable as $$
+  with ips as (select ip from player_ip where ano = p_ano),
+  all_accounts as (select distinct pi.ano, pi.ip from player_ip pi where pi.ip in (select ip from ips)),
+  nicks as (
+    select distinct on (gp.ano) gp.ano, gp.nickname
+    from game_player gp join game g on g."gameID" = gp."gameID"
+    where gp.nickname <> '' and gp.ano in (select ano from all_accounts)
+    order by gp.ano, g.date desc),
+  gcounts as (
+    select gp.ano, gp.ip, count(distinct gp."gameID") as cnt
+    from game_player gp
+    where gp.ano in (select ano from all_accounts) and gp.ip in (select ip from ips)
+    group by gp.ano, gp.ip)
+  select a.ip, a.ano, coalesce(n.nickname, '') as nickname, coalesce(gc.cnt, 0) as game_count
+  from all_accounts a
+  left join nicks n on n.ano = a.ano
+  left join gcounts gc on gc.ano = a.ano and gc.ip = a.ip
+  order by a.ip, game_count desc;
+$$;
+
+revoke execute on function public.player_ips(text), public.ip_shared_accounts(text) from anon;
+grant  execute on function public.player_ips(text), public.ip_shared_accounts(text) to authenticated;
+
+-- ============================================================================
 -- 5) 내 계정 1개 만들기 (개인용)
 --    Supabase 대시보드 > Authentication > Users > "Add user" 로 직접 생성하거나,
 --    Authentication > Providers > Email 에서 "Confirm email" 끈 뒤 앱에서 가입.

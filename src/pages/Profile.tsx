@@ -5,6 +5,7 @@ import type { WinrateSummary, RecentGame, NickHistoryRow } from "../lib/types";
 import WinRateCard from "../components/WinRateCard";
 import RecentGames from "../components/RecentGames";
 import NickHistory from "../components/NickHistory";
+import IpPanel from "../components/IpPanel";
 
 export default function Profile() {
   const { ano = "" } = useParams();
@@ -61,6 +62,8 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {!loading && <IpPanel ano={ano} />}
     </div>
   );
 }
