@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { GameRow, GamePlayerRow } from "../lib/types";
-import { gameTypeLabel, teamLabel, CAMP_WIN } from "../lib/types";
+import { gameTypeLabel, teamLabel, winnerTeamLabel, CAMP_WIN, FACTION_SIDE } from "../lib/types";
+import Hero from "../components/Hero";
 
 export default function GameDetail() {
   const { gameId = "" } = useParams();
@@ -55,7 +56,7 @@ export default function GameDetail() {
               <div className="kv">
                 <span>유형</span> <b>{gameTypeLabel(game.roomType)}</b>
                 <span>일시</span> <b>{game.date}</b>
-                <span>승리팀</span> <b>{game.winnerTeam}</b>
+                <span>승리팀</span> <b>{winnerTeamLabel(game.winnerTeam)}</b>
                 <span>맵</span> <b>{game.mapType ?? "-"}</b>
                 <span>평균레이팅</span> <b>{game.averageRating ?? "-"}</b>
                 <span>게임시간</span> <b>{game.gameTime ?? "-"}</b>
@@ -65,9 +66,9 @@ export default function GameDetail() {
           {camps.map((c) => {
             const isWinner = !!game && CAMP_WIN[c] === game.winnerTeam;
             return (
-            <div className="card" key={c || "none"}>
-              <h2 className={isWinner ? "win" : ""}>
-                {teamLabel(c)} {isWinner ? "(승)" : ""}
+            <div className={`card team-${FACTION_SIDE[c] ?? "none"}`} key={c || "none"}>
+              <h2 className={`team-title ${isWinner ? "win" : ""}`}>
+                {teamLabel(c)} {isWinner ? "★ 승리" : ""}
               </h2>
               <table className="nick-table">
                 <thead>
@@ -84,7 +85,7 @@ export default function GameDetail() {
                     .map((p) => (
                       <tr key={p.ano}>
                         <td>{p.nickname || "(닉 없음)"}</td>
-                        <td className="muted">{p.heroNo}</td>
+                        <td><Hero no={p.heroNo} size={28} /></td>
                         <td className="muted">{p.mvpOdds ?? "-"}</td>
                         <td>
                           <Link className="link" to={`/player/${encodeURIComponent(p.ano)}`}>

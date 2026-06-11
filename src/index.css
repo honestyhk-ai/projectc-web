@@ -89,6 +89,21 @@ button:disabled { opacity: .6; cursor: default; }
 .wr-bar .seg.loss { background: var(--loss); }
 .wr-wld { font-size: 12px; margin-top: 4px; }
 
+/* ---- hero portrait ---- */
+.hero-img { border-radius: 5px; object-fit: cover; vertical-align: middle; background: var(--panel2); display: inline-block; }
+.hero-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; padding: 0 4px; border-radius: 5px;
+  background: var(--panel2); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums;
+}
+
+/* ---- team faction colors (game detail) ---- */
+.card.team-holy { border-left: 4px solid var(--win); }
+.card.team-undead { border-left: 4px solid var(--loss); }
+.team-title.win { color: inherit; }
+.card.team-holy .team-title { color: #6ea8fe; }
+.card.team-undead .team-title { color: #ff8a8a; }
+
 /* ---- game list ---- */
 .game-list { display: flex; flex-direction: column; gap: 6px; }
 .game-row {

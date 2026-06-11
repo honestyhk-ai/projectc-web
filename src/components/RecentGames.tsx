@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { RecentGame } from "../lib/types";
 import { gameTypeLabel } from "../lib/types";
+import Hero from "./Hero";
 
 function fmtDate(s: string): string {
   // date 가 "YYYY-MM-DD HH:MM:SS" 또는 ISO 문자열일 수 있음
@@ -25,7 +26,7 @@ export default function RecentGames({ games }: { games: RecentGame[] }) {
             >
               <span className="g-result">{label}</span>
               <span className="g-type">{gameTypeLabel(g.roomType)}</span>
-              <span className="g-hero muted">영웅 {g.heroNo}</span>
+              <span className="g-hero"><Hero no={g.heroNo} size={26} /></span>
               <span className="g-rating muted">{g.averageRating ?? "-"}</span>
               <span className="g-date muted">{fmtDate(g.date)}</span>
             </Link>

@@ -116,10 +116,15 @@ export function gameTypeLabel(roomType: string): string {
   return GAME_TYPE_LABELS[roomType] ?? `타입 ${roomType}`;
 }
 
-// campType(0/1) -> 그 진영이 이겼을 때의 winnerTeam 값. 실측으로 확정한 매핑.
-//   campType "0" 은 winnerTeam "E" 일 때 승, "1" 은 "U" 일 때 승.
-//   winnerTeam "" / "N" 은 무승부·노리절트.
+// 진영 매핑 (.exe game_detail 에서 확정):
+//   campType "0" = winnerTeam "E" = 신성연합, campType "1" = winnerTeam "U" = 불사군단.
+//   winnerTeam "" / "N" = 무승부·노리절트.
 export const CAMP_WIN: Record<string, string> = { "0": "E", "1": "U" };
+
+// campType -> 진영 이름
+export const FACTION: Record<string, string> = { "0": "신성연합", "1": "불사군단" };
+// 진영별 색 키 (CSS class 용)
+export const FACTION_SIDE: Record<string, "holy" | "undead"> = { "0": "holy", "1": "undead" };
 
 export type GameResult = "win" | "loss" | "draw";
 
@@ -129,7 +134,15 @@ export function campResult(campType: string, winnerTeam: string): GameResult {
 }
 
 export function teamLabel(campType: string): string {
-  return campType === "0" ? "E진영" : campType === "1" ? "U진영" : `진영 ${campType}`;
+  return FACTION[campType] ?? `진영 ${campType}`;
+}
+
+// winnerTeam 값 -> 진영 이름 (E/U/N/'')
+export function winnerTeamLabel(winnerTeam: string): string {
+  if (winnerTeam === "E") return "신성연합";
+  if (winnerTeam === "U") return "불사군단";
+  if (winnerTeam === "" || winnerTeam === "N") return "무승부";
+  return winnerTeam;
 }
 
 export function winRate(wins: number, games: number): number {
