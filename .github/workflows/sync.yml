@@ -1,0 +1,26 @@
+name: Sync data (wqlav -> lcmql)
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # 30분마다
+  workflow_dispatch:
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install sync deps
+        run: npm --prefix scripts install --no-audit --no-fund
+      - name: Run sync
+        env:
+          WQLAV_DB_URL: ${{ secrets.WQLAV_DB_URL }}
+          LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
+        run: node scripts/sync.mjs
