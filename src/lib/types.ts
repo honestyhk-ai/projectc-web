@@ -104,15 +104,17 @@ export function scoreClass(score: number): "hi" | "mid" | "lo" {
   return "lo";
 }
 
-// 순위 (ranking RPC) — 랭크 MMR(Elo) 기준
+// 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)
+export type RankSort = "wins" | "winrate" | "games";
+
 export interface RankRow {
   rnk: number;
   ano: string;
   nickname: string;
-  mmr: number;
   games: number;
   wins: number;
   losses: number;
+  draws: number;
   winrate: number;
 }
 

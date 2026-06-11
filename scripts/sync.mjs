@@ -4,7 +4,6 @@
 import { pipeline } from "node:stream/promises";
 import pg from "pg";
 import { to as copyTo, from as copyFrom } from "pg-copy-streams";
-import { computeMmr } from "./mmr.mjs";
 
 const SRC = (process.env.WQLAV_DB_URL || "").split("?")[0];
 const DST = (process.env.LCMQL_DB_URL || "").split("?")[0];
@@ -43,7 +42,7 @@ try {
   }
 
   // 2) 파생 테이블 전체 갱신 (작음). truncate+copy 를 한 트랜잭션으로 → 조회자는 끊김 없음.
-  for (const t of ["player_ip", "player_winrate_summary", "suspect_pairs"]) {
+  for (const t of ["player_ip", "player_winrate_summary", "suspect_pairs", "player_summary"]) {
     await dst.query("begin");
     await dst.query(`truncate public."${t}"`);
     await copyRange(t);
@@ -51,10 +50,6 @@ try {
     const n = (await dst.query(`select count(*)::bigint n from public."${t}"`)).rows[0].n;
     console.log(`  [refresh] ${t.padEnd(24)} ${n}`);
   }
-
-  // 3) MMR(Elo) 재계산 — 랭크 경기 결과 기반
-  const mmr = await computeMmr(dst);
-  console.log(`  [mmr] ${mmr.players} players / ${mmr.games} ranked games`);
 
   console.log(`DONE in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 } catch (e) {

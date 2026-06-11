@@ -197,37 +197,32 @@ revoke execute on function public.player_suspects(text), public.accounts_by_ip(t
 grant  execute on function public.player_suspects(text), public.accounts_by_ip(text) to authenticated;
 
 -- ============================================================================
--- 4d) 순위 (랭크 MMR/Elo 기준)
---   개인 레이팅 데이터가 원본에 없어, 랭크 경기 결과로 Elo 를 직접 산출(scripts/mmr.mjs).
---   sync 워크플로가 30분마다 player_mmr 를 재계산. 아래는 테이블/RLS/RPC 정의.
+-- 4d) 순위 (랭크 실측 통계 기준; 정렬 wins|winrate|games, 전체 참가자)
+--   닉네임 빠른 조회용으로 player_summary(원본에서 sync) 를 조인. player_summary 는
+--   IP 등 민감정보 포함이라 직접 노출 금지(RLS on, 정책 없음) → ranking 은 SECURITY DEFINER.
 -- ============================================================================
-create table if not exists public.player_mmr (
-  ano text primary key, mmr integer, games integer, wins integer, losses integer,
-  updated_at timestamptz default now()
-);
-alter table public.player_mmr enable row level security;
-drop policy if exists "auth read mmr" on public.player_mmr;
-create policy "auth read mmr" on public.player_mmr for select to authenticated using (true);
-grant select on public.player_mmr to authenticated;
+alter table public.player_summary enable row level security;  -- 직접 노출 차단(정책 없음)
 
-create or replace function public.ranking(p_limit int default 100)
-returns table(rnk bigint, ano text, nickname text, mmr int, games int, wins int, losses int, winrate numeric)
-language sql stable as $$
-  with top as (
-    select *, row_number() over (order by mmr desc, games desc) as rnk
-    from player_mmr order by mmr desc limit p_limit
+create or replace function public.ranking(p_sort text default 'wins')
+returns table(rnk bigint, ano text, nickname text, games int, wins int, losses int, draws int, winrate numeric)
+language sql stable security definer set search_path = public, pg_temp as $$
+  with base as (
+    select w.ano, w.ranked_games games, w.ranked_wins wins, w.ranked_draws draws,
+           greatest(w.ranked_games-w.ranked_wins-w.ranked_draws,0) losses,
+           round(100.0*w.ranked_wins/nullif(w.ranked_games,0),1) winrate
+    from player_winrate_summary w where w.ranked_games > 0
   )
-  select t.rnk, t.ano, coalesce(n.nickname,'') as nickname, t.mmr, t.games, t.wins, t.losses,
-         round(100.0*t.wins/nullif(t.games,0),1) as winrate
-  from top t
-  left join lateral (
-    select gp.nickname from game_player gp join game g on gp."gameID"=g."gameID"
-    where gp.ano=t.ano and gp.nickname<>'' order by g.date desc limit 1
-  ) n on true
-  order by t.rnk;
+  select row_number() over (order by
+            case when p_sort='games'   then b.games end desc nulls last,
+            case when p_sort='winrate' then (b.wins::numeric/nullif(b.games,0)) end desc nulls last,
+            case when p_sort='wins'    then b.wins end desc nulls last,
+            b.wins desc, b.games desc) as rnk,
+         b.ano, coalesce(ps.nickname,'') as nickname, b.games, b.wins, b.losses, b.draws, b.winrate
+  from base b left join player_summary ps on ps.ano = b.ano
+  order by rnk;
 $$;
-revoke execute on function public.ranking(int) from anon;
-grant  execute on function public.ranking(int) to authenticated;
+revoke execute on function public.ranking(text) from anon;
+grant  execute on function public.ranking(text) to authenticated;
 
 -- ============================================================================
 -- 5) 내 계정 1개 만들기 (개인용)
