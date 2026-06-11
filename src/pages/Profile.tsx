@@ -6,6 +6,7 @@ import WinRateCard from "../components/WinRateCard";
 import RecentGames from "../components/RecentGames";
 import NickHistory from "../components/NickHistory";
 import IpPanel from "../components/IpPanel";
+import SuspectPanel from "../components/SuspectPanel";
 
 export default function Profile() {
   const { ano = "" } = useParams();
@@ -63,6 +64,7 @@ export default function Profile() {
         </div>
       )}
 
+      {!loading && <SuspectPanel ano={ano} />}
       {!loading && <IpPanel ano={ano} />}
     </div>
   );

@@ -4,6 +4,7 @@ import { supabase } from "./lib/supabase";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import GameDetail from "./pages/GameDetail";
+import IpSearch from "./pages/IpSearch";
 
 function Header() {
   return (
@@ -11,9 +12,13 @@ function Header() {
       <Link to="/" className="logo">
         ProjectC <span className="muted">전적</span>
       </Link>
-      <button className="link" onClick={() => supabase.auth.signOut()}>
-        로그아웃
-      </button>
+      <nav className="nav">
+        <Link to="/" className="navlink">플레이어</Link>
+        <Link to="/ip" className="navlink">IP 검색</Link>
+        <button className="link" onClick={() => supabase.auth.signOut()}>
+          로그아웃
+        </button>
+      </nav>
     </header>
   );
 }
@@ -26,6 +31,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<Search />} />
+            <Route path="/ip" element={<IpSearch />} />
             <Route path="/player/:ano" element={<Profile />} />
             <Route path="/game/:gameId" element={<GameDetail />} />
             <Route path="*" element={<Navigate to="/" replace />} />

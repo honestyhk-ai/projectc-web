@@ -144,6 +144,59 @@ revoke execute on function public.player_ips(text), public.ip_shared_accounts(te
 grant  execute on function public.player_ips(text), public.ip_shared_accounts(text) to authenticated;
 
 -- ============================================================================
+-- 4c) 부계정 의심쌍 + IP 검색 (로그인 사용자 전용)
+-- ============================================================================
+grant select on public.suspect_pairs to authenticated;
+drop policy if exists "auth read susp" on public.suspect_pairs;
+create policy "auth read susp" on public.suspect_pairs for select to authenticated using (true);
+
+-- 특정 계정과 의심되는 부계정 쌍 (identity_score 순; 저장 임계 0.65)
+create or replace function public.player_suspects(p_ano text)
+returns table(other_ano text, other_nick text, identity_score real, shared_ip_count integer,
+              game_count_other bigint, timing_overlap boolean, concurrent_ratio real,
+              signal_details jsonb)
+language sql stable as $$
+  select case when ano_a = p_ano then ano_b else ano_a end,
+         case when ano_a = p_ano then nick_b else nick_a end,
+         identity_score, shared_ip_count,
+         case when ano_a = p_ano then game_count_b else game_count_a end,
+         timing_overlap, concurrent_ratio, signal_details
+  from suspect_pairs
+  where ano_a = p_ano or ano_b = p_ano
+  order by identity_score desc limit 100;
+$$;
+
+-- IP 프리픽스로 계정 검색
+create or replace function public.accounts_by_ip(p_ip text)
+returns table(ip text, ano text, nickname text, game_count bigint, ip_total bigint)
+language sql stable as $$
+  with matched_ips as (select distinct ip from player_ip where ip like p_ip || '%'),
+  linked as (select pi.ano, pi.ip from player_ip pi where pi.ip in (select ip from matched_ips)),
+  nicks as (
+    select distinct on (gp.ano) gp.ano, gp.nickname
+    from game_player gp join game g on g."gameID" = gp."gameID"
+    where gp.nickname <> '' and gp.ano in (select ano from linked)
+    order by gp.ano, g.date desc),
+  gcounts as (
+    select gp.ano, gp.ip, count(distinct gp."gameID") as cnt from game_player gp
+    where gp.ano in (select ano from linked) and gp.ip in (select ip from matched_ips)
+    group by gp.ano, gp.ip),
+  ip_totals as (
+    select gp.ip, count(distinct gp."gameID") as total from game_player gp
+    where gp.ip in (select ip from matched_ips) group by gp.ip)
+  select l.ip, l.ano, coalesce(n.nickname,'') as nickname,
+         coalesce(gc.cnt,0) as game_count, coalesce(it.total,0) as ip_total
+  from linked l
+  left join nicks n on n.ano = l.ano
+  left join gcounts gc on gc.ano = l.ano and gc.ip = l.ip
+  left join ip_totals it on it.ip = l.ip
+  order by l.ip, game_count desc limit 500;
+$$;
+
+revoke execute on function public.player_suspects(text), public.accounts_by_ip(text) from anon;
+grant  execute on function public.player_suspects(text), public.accounts_by_ip(text) to authenticated;
+
+-- ============================================================================
 -- 5) 내 계정 1개 만들기 (개인용)
 --    Supabase 대시보드 > Authentication > Users > "Add user" 로 직접 생성하거나,
 --    Authentication > Providers > Email 에서 "Confirm email" 끈 뒤 앱에서 가입.

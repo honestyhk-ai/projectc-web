@@ -77,6 +77,33 @@ export interface SharedAccountRow {
   game_count: number;
 }
 
+// 부계정 의심쌍 (suspect_pairs). identity_score 0~1 (저장 임계 0.65).
+export interface SuspectRow {
+  other_ano: string;
+  other_nick: string;
+  identity_score: number;
+  shared_ip_count: number;
+  game_count_other: number;
+  timing_overlap: boolean;
+  concurrent_ratio: number;
+  signal_details: Record<string, number> | null;
+}
+
+// IP 프리픽스 검색 결과 (accounts_by_ip)
+export interface IpSearchRow {
+  ip: string;
+  ano: string;
+  nickname: string;
+  game_count: number;
+  ip_total: number;
+}
+
+export function scoreClass(score: number): "hi" | "mid" | "lo" {
+  if (score >= 0.9) return "hi";
+  if (score >= 0.8) return "mid";
+  return "lo";
+}
+
 // roomType -> 표시 라벨.
 // "2"=일반, "3"=랭크 는 실제 DB의 player_winrate_summary(normal/ranked) 와 대조해 확정.
 // "0","1" 은 의미가 불확실 → 폴백("타입 N")으로 표시. 알게 되면 여기만 고치면 됨.

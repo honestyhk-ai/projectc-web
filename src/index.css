@@ -125,3 +125,22 @@ button:disabled { opacity: .6; cursor: default; }
 .shared-row .ano { font-size: 12px; }
 .shared-row .gc { margin-left: auto; font-size: 12px; }
 .self-badge { background: var(--accent); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
+
+/* ---- header nav ---- */
+.nav { display: flex; align-items: center; gap: 16px; }
+.navlink { color: var(--muted); font-size: 14px; }
+.navlink:hover { color: var(--text); }
+
+/* ---- suspect panel ---- */
+.suspect-list { display: flex; flex-direction: column; gap: 8px; }
+.suspect-row { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.suspect-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.suspect-nick { font-weight: 600; }
+.suspect-meta { font-size: 12px; }
+.score { font-weight: 700; font-size: 15px; min-width: 48px; text-align: center; border-radius: 6px; padding: 2px 6px; }
+.score-hi { background: rgba(239,68,68,.2); color: #ff7676; }
+.score-mid { background: rgba(245,158,11,.2); color: #f5a623; }
+.score-lo { background: rgba(107,114,128,.25); color: #b9bfca; }
+.signals { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; padding-left: 58px; }
+.sig { font-size: 11px; color: var(--muted); }
+.sig b { color: var(--text); }
