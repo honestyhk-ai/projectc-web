@@ -197,28 +197,28 @@ revoke execute on function public.player_suspects(text), public.accounts_by_ip(t
 grant  execute on function public.player_suspects(text), public.accounts_by_ip(text) to authenticated;
 
 -- ============================================================================
--- 4d) 순위 (승률 랭킹, 최소 게임수 필터). p_mode: 'total'|'normal'|'ranked'
+-- 4d) 순위 (랭크 MMR/Elo 기준)
+--   개인 레이팅 데이터가 원본에 없어, 랭크 경기 결과로 Elo 를 직접 산출(scripts/mmr.mjs).
+--   sync 워크플로가 30분마다 player_mmr 를 재계산. 아래는 테이블/RLS/RPC 정의.
 -- ============================================================================
-create or replace function public.ranking(p_mode text default 'total', p_min_games int default 50, p_limit int default 100)
-returns table(rnk bigint, ano text, nickname text, games int, wins int, draws int, losses int, winrate numeric)
+create table if not exists public.player_mmr (
+  ano text primary key, mmr integer, games integer, wins integer, losses integer,
+  updated_at timestamptz default now()
+);
+alter table public.player_mmr enable row level security;
+drop policy if exists "auth read mmr" on public.player_mmr;
+create policy "auth read mmr" on public.player_mmr for select to authenticated using (true);
+grant select on public.player_mmr to authenticated;
+
+create or replace function public.ranking(p_limit int default 100)
+returns table(rnk bigint, ano text, nickname text, mmr int, games int, wins int, losses int, winrate numeric)
 language sql stable as $$
-  with base as (
-    select ano,
-      case p_mode when 'ranked' then ranked_games when 'normal' then normal_games else total_games end as games,
-      case p_mode when 'ranked' then ranked_wins  when 'normal' then normal_wins  else total_wins  end as wins,
-      case p_mode when 'ranked' then ranked_draws when 'normal' then normal_draws else draws       end as draws
-    from player_winrate_summary
-  ),
-  filt as (
-    select ano, games, wins, draws, greatest(games-wins-draws,0) as losses,
-           round(100.0*wins/nullif(games,0),1) as winrate
-    from base where games >= p_min_games
-  ),
-  top as (
-    select *, row_number() over (order by wins::numeric/nullif(games,0) desc, games desc) as rnk
-    from filt order by rnk limit p_limit
+  with top as (
+    select *, row_number() over (order by mmr desc, games desc) as rnk
+    from player_mmr order by mmr desc limit p_limit
   )
-  select t.rnk, t.ano, coalesce(n.nickname,'') as nickname, t.games, t.wins, t.draws, t.losses, t.winrate
+  select t.rnk, t.ano, coalesce(n.nickname,'') as nickname, t.mmr, t.games, t.wins, t.losses,
+         round(100.0*t.wins/nullif(t.games,0),1) as winrate
   from top t
   left join lateral (
     select gp.nickname from game_player gp join game g on gp."gameID"=g."gameID"
@@ -226,8 +226,8 @@ language sql stable as $$
   ) n on true
   order by t.rnk;
 $$;
-revoke execute on function public.ranking(text,int,int) from anon;
-grant  execute on function public.ranking(text,int,int) to authenticated;
+revoke execute on function public.ranking(int) from anon;
+grant  execute on function public.ranking(int) to authenticated;
 
 -- ============================================================================
 -- 5) 내 계정 1개 만들기 (개인용)
