@@ -55,8 +55,16 @@ npm run dev
 - anon key 가 공개돼도 안전한 이유 = **RLS + 로그인 게이트**. `setup.sql` 의 정책이 켜져 있어야 합니다.
 - ⚠️ `ProjectC.exe` 에 하드코딩되어 이미 노출된 **DB 비밀번호와 GitHub PAT 는 폐기/재발급**하세요. (이 웹 작업과 별개)
 
+## 데이터 자동 갱신 (구현됨)
+
+`.github/workflows/sync.yml` 가 **30분마다** `scripts/sync.mjs` 를 실행해 원본 프로젝트(wqlav)의 새 데이터를 이 프로젝트(lcmql)로 증분 동기화합니다.
+
+- game/game_player: gameID 워터마크로 증분 append (멱등)
+- player_ip / player_winrate_summary / suspect_pairs: 전체 갱신(작은 파생 테이블)
+- 필요한 Actions 시크릿: `WQLAV_DB_URL`, `LCMQL_DB_URL` (둘 다 postgres 접속 URI)
+- ⚠️ **의존성:** 원본 수집기(ProjectC.exe 제작자)가 wqlav 를 계속 갱신하고 wqlav DB 접속정보가 유효해야 동작. 끊기면 lcmql 도 갱신 중단(기존 데이터는 유지).
+
 ## 다음 단계 (선택)
 
-- 수집기(observe_poller)를 GitHub Actions cron 으로 이전 → PC 안 켜도 자동 수집
 - 영웅 번호 → 영웅 이름 매핑 테이블 추가
 - roomType 라벨 정확화 (`src/lib/types.ts` 의 `GAME_TYPE_LABELS`)
