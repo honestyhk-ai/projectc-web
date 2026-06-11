@@ -246,13 +246,16 @@ language sql stable as $$
   from g2 group by hn order by games desc;
 $$;
 
--- 개요: 첫/마지막 게임, 사용 IP 수, 전체 게임 수
-create or replace function public.player_overview(p_ano text)
-returns table(first_seen text, last_seen text, ip_count int, total_games bigint)
+-- 개요: 첫/마지막 게임, 사용 IP 수, 전체 게임 수, 평균 MVP 지수(mvpOdds)
+-- (KDA/기여도/디스펠은 ObserveGame API 가 제공하지 않아 데이터에 없음. mvpOdds 만 존재)
+drop function if exists public.player_overview(text);
+create function public.player_overview(p_ano text)
+returns table(first_seen text, last_seen text, ip_count int, total_games bigint, avg_mvp numeric)
 language sql stable as $$
   select min(g.date), max(g.date),
     (select count(distinct ip)::int from player_ip where ano=p_ano and ip<>''),
-    count(distinct gp."gameID")
+    count(distinct gp."gameID"),
+    round(avg((gp."mvpOdds")::numeric) filter (where gp."mvpOdds" ~ '^[0-9.]+$' and gp."mvpOdds"<>''), 2)
   from game_player gp join game g on gp."gameID"=g."gameID" where gp.ano=p_ano;
 $$;
 

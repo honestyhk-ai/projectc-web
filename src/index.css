@@ -73,6 +73,9 @@ button:disabled { opacity: .6; cursor: default; }
 /* ---- profile ---- */
 .profile-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
 .profile-head h1 { margin: 0; font-size: 24px; }
+.streak { font-weight: 700; font-size: 14px; padding: 3px 10px; border-radius: 14px; }
+.streak.win { background: rgba(59,130,246,.2); color: #6ea8fe; }
+.streak.loss { background: rgba(239,68,68,.2); color: #ff8a8a; }
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 720px) { .profile-grid { grid-template-columns: 1fr; } }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { WinrateSummary, RecentGame, NickHistoryRow, PlayerOverview } from "../lib/types";
+import { currentStreak } from "../lib/types";
 import WinRateCard from "../components/WinRateCard";
 import RecentGames from "../components/RecentGames";
 import NickHistory from "../components/NickHistory";
@@ -46,12 +47,19 @@ export default function Profile() {
   }, [ano]);
 
   const latestNick = nicks.length ? nicks[nicks.length - 1].nickname : "";
+  const streak = currentStreak(games.map((g) => g.is_win));
 
   return (
     <div className="page">
       <div className="profile-head">
         <h1>{latestNick || "플레이어"}</h1>
         <span className="ano muted">{ano}</span>
+        {!loading && streak.type !== "none" && (
+          <span className={`streak ${streak.type}`}>
+            {streak.type === "win" ? "🔥" : "❄️"} {streak.count}
+            {streak.type === "win" ? "연승" : "연패"}
+          </span>
+        )}
       </div>
 
       {err && <div className="error">{err}</div>}

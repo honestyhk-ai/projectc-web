@@ -114,6 +114,20 @@ export interface PlayerOverview {
   last_seen: string;
   ip_count: number;
   total_games: number;
+  avg_mvp: number | null;
+}
+
+// 현재 연승/연패: 최근 경기(최신순)에서 무승부 제외 후 선두 연속 구간
+export function currentStreak(isWins: (boolean | null)[]): { type: "win" | "loss" | "none"; count: number } {
+  const decided = isWins.filter((w) => w !== null) as boolean[];
+  if (decided.length === 0) return { type: "none", count: 0 };
+  const first = decided[0];
+  let count = 0;
+  for (const w of decided) {
+    if (w === first) count++;
+    else break;
+  }
+  return { type: first ? "win" : "loss", count };
 }
 
 export function scoreClass(score: number): "hi" | "mid" | "lo" {
