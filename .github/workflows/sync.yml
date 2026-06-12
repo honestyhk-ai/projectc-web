@@ -24,3 +24,8 @@ jobs:
           WQLAV_DB_URL: ${{ secrets.WQLAV_DB_URL }}
           LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
         run: node scripts/sync.mjs
+      - name: Sync hall of fame (공식 명예의 전당 상위 100)
+        if: always()
+        env:
+          LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
+        run: node scripts/hof.mjs

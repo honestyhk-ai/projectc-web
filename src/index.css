@@ -179,6 +179,20 @@ button:disabled { opacity: .6; cursor: default; }
 .rank-table .winrate { color: var(--win); font-size: 15px; }
 .rank-table .mmr { color: #ffd166; font-size: 16px; font-variant-numeric: tabular-nums; }
 
+/* ---- 명예의 전당 / 순위 섹션 ---- */
+.rank-section { margin-top: 22px; }
+.rank-section-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.rank-section-title { margin: 0 0 10px; font-size: 16px; }
+.rank-section-title .muted { font-size: 12px; font-weight: 400; }
+.grade-badge { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.grade-img { object-fit: contain; }
+.grade-text { font-size: 12px; color: var(--text); }
+.rank-change { margin-left: 6px; font-size: 11px; font-weight: 600; }
+.rank-change.up { color: var(--win); }
+.rank-change.down { color: var(--loss, #e06666); }
+.rank-change.same { color: var(--muted); }
+.rep-heroes { display: inline-flex; align-items: center; gap: 3px; }
+
 /* ---- header nav ---- */
 .nav { display: flex; align-items: center; gap: 16px; }
 .navlink { color: var(--muted); font-size: 14px; }

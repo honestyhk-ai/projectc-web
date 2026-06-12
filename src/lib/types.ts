@@ -136,6 +136,27 @@ export function scoreClass(score: number): "hi" | "mid" | "lo" {
   return "lo";
 }
 
+// 명예의 전당 (hall_of_fame_current RPC) — 공식 HallOfFame.aspx 상위 100 미러
+export interface HofRow {
+  season_year: number;
+  season_no: number;
+  rank: number;
+  ano: string;
+  nickname: string;
+  grade_icon: number | null;
+  grade_text: string; // '다이아몬드' | '자수정 4' | '루비 5' ...
+  season_change: string; // ▲8 / ▼2 / NEW / -
+  daily_change: string;
+  winrate: number | null;
+  kda: number | null;
+  games: number | null;
+  contribution: number | null;
+  hero1: string;
+  hero1_name: string;
+  hero2: string;
+  hero2_name: string;
+}
+
 // 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)
 export type RankSort = "wins" | "winrate" | "games";
 
