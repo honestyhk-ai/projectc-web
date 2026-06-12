@@ -193,6 +193,14 @@ button:disabled { opacity: .6; cursor: default; }
 .rank-change.same { color: var(--muted); }
 .rep-heroes { display: inline-flex; align-items: center; gap: 3px; }
 
+/* ---- 공식 랭킹 카드 (프로필) ---- */
+.card.official-rank { border-left: 4px solid #e8b923; }
+.official-rank-top { display: flex; align-items: center; gap: 14px; padding: 4px 0 12px; }
+.official-rank-top .grade-text { font-size: 15px; font-weight: 600; }
+.official-rank-figures { display: flex; gap: 18px; margin-left: auto; }
+.official-rank-figures .orf { font-size: 13px; color: var(--muted); }
+.official-rank-figures .orf b { font-size: 20px; color: var(--text); margin-right: 2px; }
+
 /* ---- header nav ---- */
 .nav { display: flex; align-items: center; gap: 16px; }
 .navlink { color: var(--muted); font-size: 14px; }

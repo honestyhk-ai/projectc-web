@@ -155,6 +155,12 @@ export interface HofRow {
   hero1_name: string;
   hero2: string;
   hero2_name: string;
+  // 게임 내 '내 정보'와 동일한 현재(일별 스냅샷) 값 — 공식 Top200 진입자 한정, 그 밖은 null
+  point: number | null; // 현재 점수
+  live_grade: number | null; // 현재 세부 등급 아이콘 번호 0~20
+  live_grade_name: string; // 예: '사파이어 5'
+  live_rank: number | null; // 현재(일별) 순위
+  snapshot_date: string | null;
 }
 
 // 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)

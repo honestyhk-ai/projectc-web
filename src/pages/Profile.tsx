@@ -10,6 +10,7 @@ import IpPanel from "../components/IpPanel";
 import SuspectPanel from "../components/SuspectPanel";
 import HeroStats from "../components/HeroStats";
 import DetailCard from "../components/DetailCard";
+import OfficialRank from "../components/OfficialRank";
 
 export default function Profile() {
   const { ano = "" } = useParams();
@@ -69,6 +70,7 @@ export default function Profile() {
         <>
           <div className="profile-grid">
             <div className="col-left">
+              <OfficialRank ano={ano} />
               <DetailCard ano={ano} overview={overview} summary={summary} />
               <WinRateCard s={summary} />
               <NickHistory rows={nicks} />

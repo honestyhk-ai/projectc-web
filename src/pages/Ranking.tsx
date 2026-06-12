@@ -102,6 +102,7 @@ export default function Ranking() {
               <tr>
                 <th className="c">#</th>
                 <th>티어</th>
+                <th className="c">점수</th>
                 <th>플레이어</th>
                 <th className="c">승률</th>
                 <th className="c">KDA</th>
@@ -120,8 +121,12 @@ export default function Ranking() {
                     )}
                   </td>
                   <td>
-                    <GradeBadge icon={h.grade_icon} text={h.grade_text} />
+                    <GradeBadge
+                      icon={h.live_grade ?? h.grade_icon}
+                      text={h.live_grade_name || h.grade_text}
+                    />
                   </td>
+                  <td className="c">{h.point != null ? <b>{h.point.toLocaleString()}</b> : "-"}</td>
                   <td>
                     <Link className="link" to={`/player/${encodeURIComponent(h.ano)}`}>
                       {h.nickname || "(닉 없음)"}
@@ -142,7 +147,7 @@ export default function Ranking() {
               ))}
               {hofFiltered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="center-text muted">검색 결과가 없습니다.</td>
+                  <td colSpan={9} className="center-text muted">검색 결과가 없습니다.</td>
                 </tr>
               )}
             </tbody>
