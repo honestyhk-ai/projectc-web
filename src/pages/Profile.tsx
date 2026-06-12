@@ -21,6 +21,21 @@ export default function Profile() {
   const [rec, setRec] = useState<PlayerRecord | null>(null); // 클라이언트 RecordInfo(모든 플레이어, 등급/스탯)
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+
+  // 온디맨드 새로고침: Edge Function(refresh-record)이 게임 RecordInfo 를 라이브 조회 → 갱신.
+  async function refresh() {
+    setRefreshing(true);
+    setRefreshMsg(null);
+    const { data, error } = await supabase.functions.invoke("refresh-record", { body: { ano } });
+    if (error) setRefreshMsg("새로고침 실패 (프록시 미배포이거나 일시 오류)");
+    else if (data?.record) {
+      setRec(data.record as PlayerRecord);
+      setRefreshMsg("최신 정보로 갱신됨");
+    } else setRefreshMsg(data?.error === "no record" ? "공식 기록이 없는 계정입니다" : "갱신 결과 없음");
+    setRefreshing(false);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +81,12 @@ export default function Profile() {
             {streak.type === "win" ? "연승" : "연패"}
           </span>
         )}
+        {!loading && (
+          <button className="refresh-btn" onClick={refresh} disabled={refreshing} title="이 플레이어의 공식 정보를 게임에서 즉시 다시 불러옵니다">
+            {refreshing ? "갱신 중…" : "🔄 새로고침"}
+          </button>
+        )}
+        {refreshMsg && <span className="muted refresh-msg">{refreshMsg}</span>}
       </div>
 
       {err && <div className="error">{err}</div>}

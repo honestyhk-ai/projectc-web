@@ -76,6 +76,10 @@ button:disabled { opacity: .6; cursor: default; }
 .streak { font-weight: 700; font-size: 14px; padding: 3px 10px; border-radius: 14px; }
 .streak.win { background: rgba(59,130,246,.2); color: #6ea8fe; }
 .streak.loss { background: rgba(239,68,68,.2); color: #ff8a8a; }
+.refresh-btn { margin-left: auto; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+.refresh-btn:hover:not(:disabled) { border-color: var(--accent, #6ea8fe); }
+.refresh-btn:disabled { opacity: .6; cursor: default; }
+.refresh-msg { font-size: 12px; }
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 720px) { .profile-grid { grid-template-columns: 1fr; } }
 
