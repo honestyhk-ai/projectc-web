@@ -43,9 +43,9 @@ export default function Ranking() {
     async function load() {
       setLoading(true);
       setErr(null);
-      const { data, error } = await supabase.rpc("season_ranking", { p_sort: sort });
+      // RPC 미생성/수집대기 중이어도 에러 배너 대신 "수집 대기" 안내가 뜨도록 err 는 설정 안 함.
+      const { data } = await supabase.rpc("season_ranking", { p_sort: sort });
       if (cancelled) return;
-      if (error) setErr(error.message);
       setRows((data as SeasonRankRow[]) ?? []);
       setLoading(false);
     }
