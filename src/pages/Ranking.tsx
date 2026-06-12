@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import type { HofRow, RankRow, RankSort } from "../lib/types";
+import type { HofRow, SeasonRankRow, SeasonSort } from "../lib/types";
 import GradeBadge from "../components/GradeBadge";
 import Hero from "../components/Hero";
 
-const SORTS: { key: RankSort; label: string }[] = [
+const SORTS: { key: SeasonSort; label: string }[] = [
+  { key: "grade", label: "등급" },
   { key: "wins", label: "승수" },
   { key: "winrate", label: "승률" },
   { key: "games", label: "경기수" },
@@ -17,20 +18,19 @@ const changeClass = (c: string) =>
   c.startsWith("▲") || c === "NEW" ? "up" : c.startsWith("▼") ? "down" : "same";
 
 export default function Ranking() {
-  const [sort, setSort] = useState<RankSort>("wins");
-  const [rows, setRows] = useState<RankRow[]>([]);
+  const [sort, setSort] = useState<SeasonSort>("grade");
+  const [rows, setRows] = useState<SeasonRankRow[]>([]);
   const [hof, setHof] = useState<HofRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
-  // 명예의 전당은 정렬/검색과 무관하게 1회 로드
+  // 공식 상위 100 은 정렬/검색과 무관하게 1회 로드
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { data, error } = await supabase.rpc("hall_of_fame_current");
+      const { data } = await supabase.rpc("hall_of_fame_current");
       if (cancelled) return;
-      if (error) setErr(error.message);
       setHof((data as HofRow[]) ?? []);
     })();
     return () => {
@@ -43,10 +43,10 @@ export default function Ranking() {
     async function load() {
       setLoading(true);
       setErr(null);
-      const { data, error } = await supabase.rpc("ranking", { p_sort: sort });
+      const { data, error } = await supabase.rpc("season_ranking", { p_sort: sort });
       if (cancelled) return;
       if (error) setErr(error.message);
-      setRows((data as RankRow[]) ?? []);
+      setRows((data as SeasonRankRow[]) ?? []);
       setLoading(false);
     }
     void load();
@@ -61,21 +61,21 @@ export default function Ranking() {
 
   const hofAnos = useMemo(() => new Set(hof.map((h) => h.ano)), [hof]);
   const hofFiltered = useMemo(() => hof.filter((h) => match(h.nickname, h.ano)), [hof, term]);
-  // 하단 실측 순위는 명예의 전당(상위 100)에 든 계정 제외
+  // 하단 순위는 공식 상위 100 에 든 계정 제외
   const restFiltered = useMemo(
     () => rows.filter((r) => !hofAnos.has(r.ano) && match(r.nickname, r.ano)),
     [rows, hofAnos, term],
   );
 
-  const hi = (s: RankSort) => sort === s;
+  const hi = (s: SeasonSort) => sort === s;
   const seasonLabel = hof[0] ? `${hof[0].season_year}년 ${hof[0].season_no}시즌` : "";
 
   return (
     <div className="page">
       <div className="rank-head">
-        <h1>현재 순위</h1>
+        <h1>이번 시즌 랭킹대전 순위</h1>
         <span className="muted" style={{ fontSize: 12 }}>
-          공식 명예의 전당(상위 100) + 전체 랭크 참가자 {rows.length.toLocaleString()}명
+          {seasonLabel} · 공식 상위 100 + 이번 시즌 랭크 참가자 {rows.length.toLocaleString()}명
         </span>
       </div>
 
@@ -89,13 +89,13 @@ export default function Ranking() {
 
       {err && <div className="error">{err}</div>}
 
-      {/* ── 공식 명예의 전당 (상위 100, 티어) ── */}
+      {/* ── 공식 상위 100 (티어·점수) ── */}
       <section className="rank-section">
         <h2 className="rank-section-title">
-          🏆 명예의 전당 <span className="muted">{seasonLabel} · 공식 상위 100</span>
+          🏆 공식 상위 100 <span className="muted">{seasonLabel} · 명예의 전당</span>
         </h2>
         {hof.length === 0 ? (
-          <div className="muted">명예의 전당 데이터가 아직 없습니다. (수집 대기)</div>
+          <div className="muted">공식 순위 데이터가 아직 없습니다. (수집 대기)</div>
         ) : (
           <table className="rank-table hof-table">
             <thead>
@@ -155,11 +155,11 @@ export default function Ranking() {
         )}
       </section>
 
-      {/* ── 100위 밖 전체 참가자 (자체 실측 통계) ── */}
+      {/* ── 100위 밖 · 이번 시즌 랭크 전적 ── */}
       <section className="rank-section">
         <div className="rank-section-head">
           <h2 className="rank-section-title">
-            전체 참가자 <span className="muted">100위 밖 · 자체 실측 통계</span>
+            100위 밖 <span className="muted">이번 시즌 랭킹대전 전적</span>
           </h2>
           <div className="seg-group">
             {SORTS.map((s) => (
@@ -176,6 +176,7 @@ export default function Ranking() {
             <thead>
               <tr>
                 <th className="c">#</th>
+                <th>티어</th>
                 <th>플레이어</th>
                 <th className="c">승</th>
                 <th className="c">패</th>
@@ -187,6 +188,9 @@ export default function Ranking() {
               {restFiltered.map((r) => (
                 <tr key={r.ano}>
                   <td className="c rnk">{r.rnk}</td>
+                  <td>
+                    <GradeBadge icon={r.grade} text={r.grade_name} showText={false} />
+                  </td>
                   <td>
                     <Link className="link" to={`/player/${encodeURIComponent(r.ano)}`}>
                       {r.nickname || "(닉 없음)"}
@@ -201,8 +205,8 @@ export default function Ranking() {
               ))}
               {restFiltered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="center-text muted">
-                    {q ? "검색 결과가 없습니다." : "순위 데이터가 없습니다."}
+                  <td colSpan={7} className="center-text muted">
+                    {q ? "검색 결과가 없습니다." : "이번 시즌 랭크 데이터가 없습니다. (수집 대기)"}
                   </td>
                 </tr>
               )}

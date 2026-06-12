@@ -216,6 +216,21 @@ export interface PlayerRecord {
   season_winrate: number | null;
 }
 
+// 이번 시즌 랭킹대전 순위 (season_ranking RPC) — player_record.season_* + 현재 등급
+export type SeasonSort = "grade" | "wins" | "winrate" | "games";
+export interface SeasonRankRow {
+  rnk: number;
+  ano: string;
+  nickname: string;
+  grade: number | null;
+  grade_name: string;
+  games: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winrate: number;
+}
+
 // 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)
 export type RankSort = "wins" | "winrate" | "games";
 
