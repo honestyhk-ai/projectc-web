@@ -41,9 +41,10 @@ create policy "auth read wr"      on public.player_winrate_summary
 --   현재: 계정당 1행 player_summary + pg_trgm GIN 인덱스로 교체(빠름). player_summary 는
 --   RLS on·정책 없음(민감정보 포함)이라 security definer 로 조회 → public/anon revoke 필수.
 --   실제 운영 적용은 scripts/sync.mjs 의 ensureSearchInfra 가 멱등 자동 프로비저닝(수동 SQL 불필요).
+-- search_nicknames 는 text[] (과거닉 배열) → trgm 인덱스 불가. 현재닉(text)에만 트라이그램.
+-- 과거닉 부분일치는 unnest 로 처리(player_summary 약 2만행이라 충분히 빠름).
 create extension if not exists pg_trgm;
-create index if not exists idx_ps_nick_trgm   on public.player_summary using gin (nickname gin_trgm_ops);
-create index if not exists idx_ps_search_trgm on public.player_summary using gin (search_nicknames gin_trgm_ops);
+create index if not exists idx_ps_nick_trgm on public.player_summary using gin (nickname gin_trgm_ops);
 
 create or replace function public.search_players(q text)
 returns table(ano text, nickname text)
@@ -52,7 +53,7 @@ language sql stable security definer set search_path = public, pg_temp as $$
   from public.player_summary ps
   where char_length(btrim(q)) >= 1 and (
         ps.nickname ilike '%' || q || '%'
-     or ps.search_nicknames ilike '%' || q || '%'
+     or exists (select 1 from unnest(ps.search_nicknames) sn where sn ilike '%' || q || '%')
      or lower(ps.ano) = lower(btrim(q)))
   order by ps.game_count desc nulls last
   limit 50;

@@ -23,18 +23,26 @@ async function ensureSearchInfra(dst) {
       [table, col],
     )).rowCount > 0;
 
+  // search_nicknames 는 text[] 배열이라 trgm 인덱스 불가 → 부분일치는 unnest 로. (player_summary 는 약 2만행이라 빠름)
+  const colType = async (table, col) =>
+    (await dst.query(
+      `select data_type from information_schema.columns where table_schema='public' and table_name=$1 and column_name=$2`,
+      [table, col],
+    )).rows[0]?.data_type ?? null;
+
   await dst.query(`create extension if not exists pg_trgm`);
+  // 현재닉(text)에만 트라이그램 인덱스 — 선행 와일드카드 ilike 가속.
   await dst.query(
     `create index if not exists idx_ps_nick_trgm on public.player_summary using gin (nickname gin_trgm_ops)`,
   );
-  const hasSearch = await hasCol("player_summary", "search_nicknames");
-  if (hasSearch) {
-    await dst.query(
-      `create index if not exists idx_ps_search_trgm on public.player_summary using gin (search_nicknames gin_trgm_ops)`,
-    );
-  }
+  const searchType = await colType("player_summary", "search_nicknames");
   const hasGameCount = await hasCol("player_summary", "game_count");
-  const searchPred = hasSearch ? `or ps.search_nicknames ilike '%'||q||'%'` : "";
+  const searchPred =
+    searchType === "ARRAY"
+      ? `or exists (select 1 from unnest(ps.search_nicknames) sn where sn ilike '%'||q||'%')`
+      : searchType
+        ? `or ps.search_nicknames ilike '%'||q||'%'`
+        : "";
   const orderBy = hasGameCount ? "order by ps.game_count desc nulls last" : "";
 
   await dst.query(`
@@ -95,7 +103,12 @@ try {
 
   // 3) 검색 인프라 보장(멱등). 과거 search_players 는 game_player(100만행)⋈game 풀스캔 +
   //    선행 와일드카드 ilike 라 statement timeout 빈발 → 계정당 1행 player_summary + 트라이그램 인덱스로 교체.
-  await ensureSearchInfra(dst);
+  //    데이터 동기화 자체는 이미 끝났으므로 검색 인프라 실패가 sync 를 죽이지 않게 격리.
+  try {
+    await ensureSearchInfra(dst);
+  } catch (e) {
+    console.error("  [search] ensureSearchInfra 실패(데이터 sync 는 정상):", e.message);
+  }
 
   console.log(`DONE in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 } catch (e) {
