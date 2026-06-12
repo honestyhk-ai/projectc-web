@@ -188,6 +188,34 @@ export function gradeLabel(g: { grade_name: string; point: number | null }): str
   return `${name} ${g.point}점`;
 }
 
+// 클라이언트 RecordInfo 공개 API 기반 (official_record RPC) — 모든 플레이어.
+// basicGrade(0~20)는 public/grades 아이콘과 동일 매핑(0다이아·1~5루비·6~10자수정·11~15사파이어·16~20에메랄드).
+export interface PlayerRecord {
+  ano: string;
+  grade_name: string; // '다이아몬드' | '에메랄드 5' ...
+  grade: number | null; // 0~20 (아이콘)
+  grade_icon: string;
+  total_contribute: number | null; // 총 기여도
+  combat_contribute_avg: number | null;
+  combat_rate_avg: number | null;
+  kill_avg: number | null;
+  assist_avg: number | null;
+  level_avg: number | null;
+  gold_avg: number | null;
+  dispel_avg: number | null; // 평균 디스펠
+  potion_avg: number | null; // 평균 포션
+  creep_kill_avg: number | null;
+  career_games: number | null;
+  career_wins: number | null;
+  career_losses: number | null;
+  career_draws: number | null;
+  season_games: number | null; // 이번시즌 랭크
+  season_wins: number | null;
+  season_losses: number | null;
+  season_draws: number | null;
+  season_winrate: number | null;
+}
+
 // 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)
 export type RankSort = "wins" | "winrate" | "games";
 
