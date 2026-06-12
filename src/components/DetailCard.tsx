@@ -9,13 +9,18 @@ function row(label: string, value: React.ReactNode, hint?: string) {
   );
 }
 
-// 승/무/패 포맷. games·wins·draws 로 패는 역산.
-function record(games?: number, wins?: number, draws?: number): string {
+// 승/무/패 포맷. games·wins·draws 로 패는 역산. 승=파랑, 패=빨강.
+function record(games?: number, wins?: number, draws?: number): React.ReactNode {
   if (games == null || wins == null) return "-";
   const d = draws ?? 0;
   const losses = Math.max(0, games - wins - d);
   const wr = games ? Math.round((1000 * wins) / games) / 10 : 0;
-  return `${wins}승 ${d}무 ${losses}패 (${wr}%)`;
+  return (
+    <span>
+      <span className="win">{wins}승</span> {d}무 <span className="loss">{losses}패</span>{" "}
+      <span className="muted">({wr}%)</span>
+    </span>
+  );
 }
 
 export default function DetailCard({
