@@ -36,16 +36,25 @@ create policy "auth read wr"      on public.player_winrate_summary
 -- 3) 조회용 RPC 함수 (조인이 필요한 것만) ------------------------------------
 -- security invoker(기본) → 호출자(authenticated)의 RLS 권한으로 동작.
 
--- 플레이어 검색: 닉네임 부분일치 또는 ano 정확일치 → 계정별 최신 닉 1건
+-- 플레이어 검색: 닉네임/과거닉 부분일치 또는 ano 정확일치.
+--   ⚠️ 과거: game_player(100만행)⋈game 풀스캔 + 선행 와일드카드 ilike → statement timeout 빈발.
+--   현재: 계정당 1행 player_summary + pg_trgm GIN 인덱스로 교체(빠름). player_summary 는
+--   RLS on·정책 없음(민감정보 포함)이라 security definer 로 조회 → public/anon revoke 필수.
+--   실제 운영 적용은 scripts/sync.mjs 의 ensureSearchInfra 가 멱등 자동 프로비저닝(수동 SQL 불필요).
+create extension if not exists pg_trgm;
+create index if not exists idx_ps_nick_trgm   on public.player_summary using gin (nickname gin_trgm_ops);
+create index if not exists idx_ps_search_trgm on public.player_summary using gin (search_nicknames gin_trgm_ops);
+
 create or replace function public.search_players(q text)
 returns table(ano text, nickname text)
-language sql stable as $$
-  select distinct on (gp.ano) gp.ano, gp.nickname
-  from game_player gp
-  join game g on gp."gameID" = g."gameID"
-  where gp.nickname <> ''
-    and (gp.nickname ilike '%' || q || '%' or lower(gp.ano) = lower(q))
-  order by gp.ano, g.date desc
+language sql stable security definer set search_path = public, pg_temp as $$
+  select ps.ano, coalesce(ps.nickname, '') as nickname
+  from public.player_summary ps
+  where char_length(btrim(q)) >= 1 and (
+        ps.nickname ilike '%' || q || '%'
+     or ps.search_nicknames ilike '%' || q || '%'
+     or lower(ps.ano) = lower(btrim(q)))
+  order by ps.game_count desc nulls last
   limit 50;
 $$;
 
@@ -91,7 +100,8 @@ language sql stable as $$
 $$;
 
 -- 4) 실행 권한: 로그인 사용자에게만, anon 에게서는 회수 -----------------------
-revoke execute on function public.search_players(text)        from anon;
+-- search_players 는 security definer → public 까지 회수(definer 함수는 public 에 기본 부여됨).
+revoke execute on function public.search_players(text)        from public, anon;
 revoke execute on function public.player_recent_games(text,int) from anon;
 revoke execute on function public.player_nick_history(text)    from anon;
 grant  execute on function public.search_players(text)        to authenticated;

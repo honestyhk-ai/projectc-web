@@ -13,6 +13,48 @@ const src = new pg.Client({ connectionString: SRC, ssl: { rejectUnauthorized: fa
 const dst = new pg.Client({ connectionString: DST, ssl: { rejectUnauthorized: false } });
 
 const t0 = Date.now();
+
+// player_summary(계정당 1행) 기반 빠른 검색 함수 + 트라이그램 인덱스를 멱등 적용.
+// player_summary 는 RLS on·정책 없음 → security definer 로 조회(ranking 과 동일 패턴).
+async function ensureSearchInfra(dst) {
+  const hasCol = async (table, col) =>
+    (await dst.query(
+      `select 1 from information_schema.columns where table_schema='public' and table_name=$1 and column_name=$2`,
+      [table, col],
+    )).rowCount > 0;
+
+  await dst.query(`create extension if not exists pg_trgm`);
+  await dst.query(
+    `create index if not exists idx_ps_nick_trgm on public.player_summary using gin (nickname gin_trgm_ops)`,
+  );
+  const hasSearch = await hasCol("player_summary", "search_nicknames");
+  if (hasSearch) {
+    await dst.query(
+      `create index if not exists idx_ps_search_trgm on public.player_summary using gin (search_nicknames gin_trgm_ops)`,
+    );
+  }
+  const hasGameCount = await hasCol("player_summary", "game_count");
+  const searchPred = hasSearch ? `or ps.search_nicknames ilike '%'||q||'%'` : "";
+  const orderBy = hasGameCount ? "order by ps.game_count desc nulls last" : "";
+
+  await dst.query(`
+    create or replace function public.search_players(q text)
+    returns table(ano text, nickname text)
+    language sql stable security definer set search_path = public, pg_temp as $fn$
+      select ps.ano, coalesce(ps.nickname,'') as nickname
+      from public.player_summary ps
+      where char_length(btrim(q)) >= 1 and (
+            ps.nickname ilike '%'||q||'%'
+            ${searchPred}
+         or lower(ps.ano) = lower(btrim(q)))
+      ${orderBy}
+      limit 50
+    $fn$`);
+  await dst.query(`revoke execute on function public.search_players(text) from public, anon`);
+  await dst.query(`grant execute on function public.search_players(text) to authenticated`);
+  console.log(`  [search] player_summary 기반 search_players 적용 (trgm idx${hasSearch ? "×2" : "×1"})`);
+}
+
 async function copyRange(table, where) {
   const sel = `SELECT * FROM public."${table}"${where ? " WHERE " + where : ""}`;
   const s = src.query(copyTo(`COPY (${sel}) TO STDOUT`));
@@ -50,6 +92,10 @@ try {
     const n = (await dst.query(`select count(*)::bigint n from public."${t}"`)).rows[0].n;
     console.log(`  [refresh] ${t.padEnd(24)} ${n}`);
   }
+
+  // 3) 검색 인프라 보장(멱등). 과거 search_players 는 game_player(100만행)⋈game 풀스캔 +
+  //    선행 와일드카드 ilike 라 statement timeout 빈발 → 계정당 1행 player_summary + 트라이그램 인덱스로 교체.
+  await ensureSearchInfra(dst);
 
   console.log(`DONE in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 } catch (e) {
