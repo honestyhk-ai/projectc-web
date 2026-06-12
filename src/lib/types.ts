@@ -163,6 +163,31 @@ export interface HofRow {
   snapshot_date: string | null;
 }
 
+// 공식 현재 등급 (official_grade RPC) — 게임 내 '내 정보'와 동일, 시즌 Top200 진입자만 존재
+export interface PlayerGrade {
+  ano: string;
+  season_year: number;
+  season_no: number;
+  grade: number | null; // 등급 아이콘 번호 0~20
+  grade_name: string; // '루비 1' | '에메랄드 5' | '다이아몬드' ...
+  point: number | null; // 점수 (다이아몬드는 보통 0)
+  official_rank: number | null; // 현재 공식 순위 1~200
+  wins: number;
+  losses: number;
+  draws: number;
+  games: number;
+  winrate: number | null;
+  contribution: number | null;
+  snapshot_date: string | null;
+}
+
+// 등급명 + 점수를 '루비 1 30점' 형식으로. 다이아몬드(최상위)는 점수 미표기.
+export function gradeLabel(g: { grade_name: string; point: number | null }): string {
+  const name = g.grade_name || "";
+  if (!name || name === "다이아몬드" || g.point == null) return name;
+  return `${name} ${g.point}점`;
+}
+
 // 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)
 export type RankSort = "wins" | "winrate" | "games";
 

@@ -1,0 +1,27 @@
+name: Sync grades (랭크 참가자 공식 등급)
+
+# 공식 등급/점수는 일 단위로 갱신되므로 하루 1회면 충분.
+# 랭크 참가자 전원(~2천명)을 GetHallOfFameHistory 로 조회해 Top200 진입자 등급을 player_grade 에 적재.
+on:
+  schedule:
+    - cron: "20 18 * * *" # 매일 1회 (UTC 18:20 ≈ KST 03:20)
+  workflow_dispatch:
+
+concurrency:
+  group: grades
+  cancel-in-progress: false
+
+jobs:
+  grades:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm --prefix scripts install --no-audit --no-fund
+      - name: Sync grades
+        env:
+          LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
+        run: node scripts/grades.mjs

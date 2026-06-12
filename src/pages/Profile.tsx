@@ -70,7 +70,7 @@ export default function Profile() {
         <>
           <div className="profile-grid">
             <div className="col-left">
-              <OfficialRank ano={ano} />
+              <OfficialRank ano={ano} rankedGames={summary?.ranked_games ?? 0} />
               <DetailCard ano={ano} overview={overview} summary={summary} />
               <WinRateCard s={summary} />
               <NickHistory rows={nicks} />
