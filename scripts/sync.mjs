@@ -60,7 +60,7 @@ async function ensureSearchInfra(dst) {
     $fn$`);
   await dst.query(`revoke execute on function public.search_players(text) from public, anon`);
   await dst.query(`grant execute on function public.search_players(text) to authenticated`);
-  console.log(`  [search] player_summary 기반 search_players 적용 (trgm idx${hasSearch ? "×2" : "×1"})`);
+  console.log(`  [search] player_summary 기반 search_players 적용 (과거닉 ${searchType === "ARRAY" ? "unnest" : searchType || "없음"})`);
 }
 
 async function copyRange(table, where) {
