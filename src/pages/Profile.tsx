@@ -35,7 +35,9 @@ export default function Profile() {
         supabase.rpc("official_record", { p_ano: ano }),
       ]);
       if (cancelled) return;
-      const firstErr = wr.error || rg.error || nh.error || og.error || or.error;
+      // 공식 등급/전적(official_grade/official_record)은 보조 데이터 — 아직 미수집이거나
+      // RPC 미생성이어도 프로필 본문을 막지 않도록 페이지 에러에서 제외(없으면 null 처리).
+      const firstErr = wr.error || rg.error || nh.error;
       if (firstErr) setErr(firstErr.message);
       setSummary((wr.data as WinrateSummary) ?? null);
       setGames((rg.data as RecentGame[]) ?? []);
