@@ -25,3 +25,8 @@ jobs:
         env:
           LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
         run: node scripts/grades.mjs
+      - name: Sync player records (등급/디스펠/포션/KDA/기여도)
+        if: always()
+        env:
+          LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
+        run: node scripts/record.mjs
