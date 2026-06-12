@@ -85,8 +85,25 @@ create table if not exists public.hall_of_fame (
   primary key (season_year, season_no, ano)
 )`;
 
-// 테이블이 처음 생성될 때부터 RLS 켜둠(anon 직접 노출 차단). 정책/RPC/grant 는 supabase/hall_of_fame.sql 에서.
+// 테이블이 처음 생성될 때부터 RLS 켜둠(anon 직접 노출 차단).
 const ENABLE_RLS = `alter table public.hall_of_fame enable row level security`;
+
+// RLS(정책 없음=anon 0행) + 최신시즌 조회 RPC(security definer, authenticated 전용). 멱등.
+// 수동 SQL(supabase/hall_of_fame.sql) 없이 스크래퍼가 자동 적용 → 운영 단순화.
+const SETUP = [
+  `create index if not exists idx_hall_of_fame_rank on public.hall_of_fame (season_year desc, season_no desc, rank)`,
+  `create or replace function public.hall_of_fame_current()
+   returns setof public.hall_of_fame
+   language sql stable security definer set search_path = public as $fn$
+     select * from public.hall_of_fame
+     where (season_year, season_no) = (
+       select season_year, season_no from public.hall_of_fame
+       order by season_year desc, season_no desc limit 1)
+     order by rank;
+   $fn$`,
+  `revoke execute on function public.hall_of_fame_current() from public, anon`,
+  `grant execute on function public.hall_of_fame_current() to authenticated`,
+];
 
 async function main() {
   const res = await fetch(HOF_URL, {
@@ -109,6 +126,7 @@ async function main() {
   try {
     await db.query(DDL);
     await db.query(ENABLE_RLS);
+    for (const stmt of SETUP) await db.query(stmt);
     await db.query("begin");
     await db.query("delete from public.hall_of_fame where season_year=$1 and season_no=$2", [year, season]);
     const cols = "season_year,season_no,rank,ano,nickname,grade_icon,grade_text,season_change,daily_change,winrate,kda,games,contribution,hero1,hero1_name,hero2,hero2_name";
