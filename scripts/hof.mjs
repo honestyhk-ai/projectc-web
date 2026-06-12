@@ -85,6 +85,9 @@ create table if not exists public.hall_of_fame (
   primary key (season_year, season_no, ano)
 )`;
 
+// 테이블이 처음 생성될 때부터 RLS 켜둠(anon 직접 노출 차단). 정책/RPC/grant 는 supabase/hall_of_fame.sql 에서.
+const ENABLE_RLS = `alter table public.hall_of_fame enable row level security`;
+
 async function main() {
   const res = await fetch(HOF_URL, {
     headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Language": "ko-KR,ko" },
@@ -105,6 +108,7 @@ async function main() {
   await db.connect();
   try {
     await db.query(DDL);
+    await db.query(ENABLE_RLS);
     await db.query("begin");
     await db.query("delete from public.hall_of_fame where season_year=$1 and season_no=$2", [year, season]);
     const cols = "season_year,season_no,rank,ano,nickname,grade_icon,grade_text,season_change,daily_change,winrate,kda,games,contribution,hero1,hero1_name,hero2,hero2_name";
