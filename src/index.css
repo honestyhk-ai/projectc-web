@@ -173,6 +173,12 @@ button:disabled { opacity: .6; cursor: default; }
 .rank-head h1 { margin: 0; font-size: 22px; }
 .seg-group { display: flex; gap: 4px; background: var(--panel2); padding: 3px; border-radius: 8px; }
 .seg { background: none; border: none; color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; justify-content: center; margin-top: 16px; }
+.pager .pager-item { display: inline-flex; align-items: center; gap: 4px; }
+.pager .seg { background: var(--panel2); min-width: 34px; text-align: center; }
+.pager .seg.on { background: var(--accent, #2f6df0); color: #fff; }
+.pager .seg:disabled { opacity: .4; cursor: default; }
+.pager-gap { color: var(--muted); padding: 0 2px; }
 .seg.on { background: var(--accent); color: #fff; }
 .rank-table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .rank-table th, .rank-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; }
