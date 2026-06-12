@@ -158,6 +158,7 @@ button:disabled { opacity: .6; cursor: default; }
 .hero-table td.c, .hero-table th.c { text-align: center; }
 .hero-table .hcell { display: flex; align-items: center; gap: 8px; }
 .hero-table .hno { font-size: 11px; }
+.hero-table .hname { font-size: 13px; color: var(--text); }
 .hwr { font-weight: 600; }
 .hwr[data-hi="true"] { color: var(--win); }
 .hwr[data-hi="false"] { color: var(--loss); }

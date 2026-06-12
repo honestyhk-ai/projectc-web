@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { HeroStat } from "../lib/types";
+import { heroName } from "../lib/heroNames";
 import Hero from "./Hero";
 
 export default function HeroStats({ ano }: { ano: string }) {
@@ -52,7 +53,7 @@ export default function HeroStats({ ano }: { ano: string }) {
                 <tr key={h.hero_no}>
                   <td className="hcell">
                     <Hero no={h.hero_no} size={30} />
-                    <span className="muted hno">{h.hero_no}</span>
+                    <span className="hname">{heroName(h.hero_no)}</span>
                   </td>
                   <td className="c">{h.games}</td>
                   <td className="c muted">

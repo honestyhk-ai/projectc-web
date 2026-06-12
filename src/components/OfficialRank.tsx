@@ -1,31 +1,11 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
 import type { PlayerGrade } from "../lib/types";
 import { gradeLabel } from "../lib/types";
 import GradeBadge from "./GradeBadge";
 
 // 게임 내 '내 정보'와 동일한 공식 현재 등급/점수/순위.
 // 공식은 시즌 Top200 진입자만 공개 → 미진입 랭크 참가자는 '비공개' 안내, 랭크 미참가자는 카드 숨김.
-export default function OfficialRank({ ano, rankedGames }: { ano: string; rankedGames: number }) {
-  const [grade, setGrade] = useState<PlayerGrade | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoaded(false);
-    void (async () => {
-      const { data } = await supabase.rpc("official_grade", { p_ano: ano });
-      if (cancelled) return;
-      setGrade(((data as PlayerGrade[]) ?? [])[0] ?? null);
-      setLoaded(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [ano]);
-
-  if (!loaded) return null;
-
+// grade 는 Profile 에서 official_grade RPC 로 1회 조회해 전달(중복 fetch 방지).
+export default function OfficialRank({ grade, rankedGames }: { grade: PlayerGrade | null; rankedGames: number }) {
   // 랭크 미참가자에겐 의미 없음 → 숨김
   if (!grade && rankedGames <= 0) return null;
 
