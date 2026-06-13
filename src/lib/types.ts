@@ -6,6 +6,32 @@ export interface SearchResult {
   nickname: string;
 }
 
+// 실시간 진행 게임 (Edge Function 'live-game' 응답). ObserveGame.aspx 기반.
+export interface LivePlayer {
+  ano: string;
+  nickname: string;
+  campType: string;
+  heroNo: string;
+  mvpOdds: string | null;
+  isMvp: string;
+}
+export interface LiveGameData {
+  gameID: string;
+  roomType: string;
+  mapType: string;
+  gameTime: number; // 조회 시점 경과(초)
+  averageRating: string | null;
+  players: LivePlayer[];
+}
+// 검색결과 배치 조회: 라이브인 ano 별 가벼운 요약
+export interface LiveSummary {
+  gameID: string;
+  roomType: string;
+  gameTime: number;
+  campType: string;
+  heroNo: string;
+}
+
 export interface WinrateSummary {
   ano: string;
   normal_games: number;
