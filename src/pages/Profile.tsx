@@ -11,7 +11,6 @@ import SuspectPanel from "../components/SuspectPanel";
 import HeroStats from "../components/HeroStats";
 import DetailCard from "../components/DetailCard";
 import OfficialRank from "../components/OfficialRank";
-import LiveGame from "../components/LiveGame";
 
 export default function Profile() {
   const { ano = "" } = useParams();
@@ -105,7 +104,6 @@ export default function Profile() {
         <div className="muted">불러오는 중…</div>
       ) : (
         <>
-          <LiveGame ano={ano} />
           <div className="profile-grid">
             <div className="col-left">
               <OfficialRank grade={grade} rec={rec} rankedGames={summary?.ranked_games ?? 0} />
