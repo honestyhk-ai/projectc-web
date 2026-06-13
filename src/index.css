@@ -73,6 +73,8 @@ button:disabled { opacity: .6; cursor: default; }
 /* ---- profile ---- */
 .profile-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
 .profile-head h1 { margin: 0; font-size: 24px; }
+.head-stat { font-size: 13px; padding: 3px 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); color: var(--text); }
+.head-stat b { font-weight: 700; color: var(--accent, #6ea8fe); }
 .streak { font-weight: 700; font-size: 14px; padding: 3px 10px; border-radius: 14px; }
 .streak.win { background: rgba(59,130,246,.2); color: #6ea8fe; }
 .streak.loss { background: rgba(239,68,68,.2); color: #ff8a8a; }

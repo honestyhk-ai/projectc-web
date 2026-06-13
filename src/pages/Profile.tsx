@@ -75,6 +75,16 @@ export default function Profile() {
       <div className="profile-head">
         <h1>{latestNick || "플레이어"}</h1>
         <span className="ano muted">{ano}</span>
+        {!loading && grade?.official_rank != null && (
+          <span className="head-stat" title="공식 명예의 전당(Top 200) 기준 현재 순위">
+            🏅 <b>{grade.official_rank.toLocaleString()}</b>위
+          </span>
+        )}
+        {!loading && rec?.season_games != null && rec.season_games > 0 && rec.season_winrate != null && (
+          <span className="head-stat" title="이번 시즌 랭킹대전 승률">
+            시즌 승률 <b>{rec.season_winrate}%</b>
+          </span>
+        )}
         {!loading && streak.type !== "none" && (
           <span className={`streak ${streak.type}`}>
             {streak.type === "win" ? "🔥" : "❄️"} {streak.count}
