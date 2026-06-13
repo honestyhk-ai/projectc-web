@@ -205,10 +205,14 @@ export interface PlayerRecord {
   dispel_avg: number | null; // 평균 디스펠
   potion_avg: number | null; // 평균 포션
   creep_kill_avg: number | null;
-  career_games: number | null;
+  career_games: number | null; // 통산(전체모드=랭크+일반, 전시즌누적)
   career_wins: number | null;
   career_losses: number | null;
   career_draws: number | null;
+  ranked_total_games: number | null; // 랭킹대전 전시즌누적(모든 시즌 랭크)
+  ranked_total_wins: number | null;
+  ranked_total_losses: number | null;
+  ranked_total_draws: number | null;
   season_games: number | null; // 이번시즌 랭크
   season_wins: number | null;
   season_losses: number | null;

@@ -42,6 +42,22 @@ export default function DetailCard({
     .slice(0, 2)
     .map((n) => n.nickname);
 
+  // 전체 총전적(모든 시즌, 랭크+일반). 공식 통산(rec.career_*) 우선, 없으면 우리 스크랩(summary.total_*).
+  const totalRec =
+    rec && rec.career_games != null
+      ? record(rec.career_games, rec.career_wins, rec.career_draws)
+      : summary
+        ? record(summary.total_games, summary.total_wins, summary.draws)
+        : "-";
+
+  // 랭킹대전 총전적(모든 시즌 랭크). 공식 랭크누적(rec.ranked_total_*) 우선, 없으면 스크랩(summary.ranked_*).
+  const rankedRec =
+    rec && rec.ranked_total_games != null
+      ? record(rec.ranked_total_games, rec.ranked_total_wins, rec.ranked_total_draws)
+      : summary
+        ? record(summary.ranked_games, summary.ranked_wins, summary.ranked_draws)
+        : "-";
+
   // 시즌전적(이번시즌 랭킹대전). rec 있으면 실제값, 없거나 0이면 안내.
   const seasonRec =
     rec && rec.season_games != null && rec.season_games > 0
@@ -62,8 +78,8 @@ export default function DetailCard({
         {row("닉네임", latestNick || "-")}
         {row("전 닉네임", prevNicks.length ? prevNicks.join(", ") : "-", "현재 제외 최근 2개")}
         {row("계정번호", ano)}
-        {row("전체 총전적", summary ? record(summary.total_games, summary.total_wins, summary.draws) : "-", "전 시즌·전체(일반+랭크) 누적")}
-        {row("랭킹대전 총전적", summary ? record(summary.ranked_games, summary.ranked_wins, summary.ranked_draws) : "-", "전 시즌 랭킹대전 누적")}
+        {row("전체 총전적", totalRec, "모든 시즌 · 랭크+일반 합계")}
+        {row("랭킹대전 총전적", rankedRec, "모든 시즌 랭킹대전 누적")}
         {row("시즌 전적", seasonRec, "이번 시즌 랭킹대전 전적")}
         {row("총 기여도", rec?.total_contribute != null ? n1(rec.total_contribute) : "-")}
         {row("평균 KDA", kda, "킬·어시 평균 (데스는 공식 미제공)")}

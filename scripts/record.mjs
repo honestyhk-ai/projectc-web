@@ -2,7 +2,7 @@
 // 현재 등급 + 평균 디스펠/포션/킬/어시/기여도 + 이번시즌 랭크전적을 player_record 에 적재.
 //   엔드포인트: http://www.chaosonline.co.kr:8081/ClientJson/RecordInfo.aspx?ano=..&recordType=..&tabType=..
 //     recordType 0=전체모드 1=랭킹대전 / tabType S=이번시즌 A=전시즌누적.
-//   per-ano 2회 호출: ① rt=0&tab=A(통산 평균스탯+등급) ② rt=1&tab=S(이번시즌 랭크 승패).
+//   per-ano 3회 호출: ① rt=0&tab=A(통산 평균스탯+등급) ② rt=1&tab=S(이번시즌 랭크) ③ rt=1&tab=A(랭크 전시즌누적).
 //   8081 은 과거 한국 지오제한이었으나 현재 GitHub Actions(US)에서도 접속됨(실측).
 //   비표준 JSON(키 따옴표X, trailing comma)이라 정규식으로 필드 추출.
 // env: LCMQL_DB_URL. --dry 면 DB 없이 샘플 출력.
@@ -44,6 +44,7 @@ async function collect(ano) {
   const grade_name = strf(career, "basicGradeName");
   if (!grade_name) return null; // 기록 없는 계정
   const season = await fetchRecord(ano, 1, "S"); // 이번시즌 랭크 승패
+  const rankedAll = await fetchRecord(ano, 1, "A"); // 랭크모드 전시즌누적 승패
 
   const row = {
     ano: String(ano),
@@ -65,6 +66,11 @@ async function collect(ano) {
     career_wins: intf(career, "totalWinCount"),
     career_losses: intf(career, "totalLoseCount"),
     career_draws: intf(career, "totalDrawCount"),
+    // 랭킹대전 전시즌누적 승패 (모든 시즌 랭크)
+    ranked_total_games: rankedAll ? intf(rankedAll, "playCount") : null,
+    ranked_total_wins: rankedAll ? intf(rankedAll, "totalWinCount") : null,
+    ranked_total_losses: rankedAll ? intf(rankedAll, "totalLoseCount") : null,
+    ranked_total_draws: rankedAll ? intf(rankedAll, "totalDrawCount") : null,
     // 이번시즌 랭킹대전 승패
     season_games: season ? intf(season, "playCount") : null,
     season_wins: season ? intf(season, "totalWinCount") : null,
@@ -107,12 +113,18 @@ create table if not exists public.player_record (
   potion_avg numeric,
   creep_kill_avg numeric,
   career_games int, career_wins int, career_losses int, career_draws int,
+  ranked_total_games int, ranked_total_wins int, ranked_total_losses int, ranked_total_draws int,
   season_games int, season_wins int, season_losses int, season_draws int, season_winrate int,
   updated_at timestamptz default now()
 )`;
 
 const SETUP = [
   `alter table public.player_record enable row level security`,
+  // 기존 테이블 업그레이드(멱등): 랭크 전시즌누적 컬럼 추가
+  `alter table public.player_record add column if not exists ranked_total_games int`,
+  `alter table public.player_record add column if not exists ranked_total_wins int`,
+  `alter table public.player_record add column if not exists ranked_total_losses int`,
+  `alter table public.player_record add column if not exists ranked_total_draws int`,
   `create or replace function public.official_record(p_ano text)
    returns setof public.player_record
    language sql stable security definer set search_path = public as $fn$
@@ -148,7 +160,7 @@ const SETUP = [
   `grant execute on function public.season_ranking() to authenticated`,
 ];
 
-const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,season_games,season_wins,season_losses,season_draws,season_winrate";
+const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,ranked_total_games,ranked_total_wins,ranked_total_losses,ranked_total_draws,season_games,season_wins,season_losses,season_draws,season_winrate";
 const COLN = COLS.split(",").length;
 
 async function main() {
@@ -165,7 +177,7 @@ async function main() {
   } else {
     anos = ["27938", "98", "520", "11136", "26914"];
   }
-  console.log(`조회 대상: ${anos.length}명 (per-ano 2회 호출)`);
+  console.log(`조회 대상: ${anos.length}명 (per-ano 3회 호출)`);
 
   const rows = await enrich(anos);
   console.log(`기록 보유: ${rows.length}명`);
@@ -190,6 +202,7 @@ async function main() {
         vals.push(r.ano, r.grade_name, r.grade, r.grade_icon, r.total_contribute, r.combat_contribute_avg, r.combat_rate_avg,
           r.kill_avg, r.assist_avg, r.level_avg, r.gold_avg, r.dispel_avg, r.potion_avg, r.creep_kill_avg,
           r.career_games, r.career_wins, r.career_losses, r.career_draws,
+          r.ranked_total_games, r.ranked_total_wins, r.ranked_total_losses, r.ranked_total_draws,
           r.season_games, r.season_wins, r.season_losses, r.season_draws, r.season_winrate);
       }
       await db.query(`insert into public.player_record (${COLS}) values ${ph.join(",")}`, vals);
