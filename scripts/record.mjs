@@ -120,14 +120,17 @@ const SETUP = [
    $fn$`,
   `revoke execute on function public.official_record(text) from public, anon`,
   `grant execute on function public.official_record(text) to authenticated`,
-  // 이번 시즌 랭킹대전 순위 (player_record.season_* + 현재 등급). 닉네임은 player_summary 조인.
-  //   정렬: grade(등급 ladder, 낮은 grade=상위) | wins | winrate | games.
-  `create or replace function public.season_ranking(p_sort text default 'grade')
+  // 이번 시즌 랭킹대전 순위 — 클라이언트 전투 평점(combat_rate_avg) 내림차순 단일 정렬.
+  //   닉네임은 player_summary 조인. (구 p_sort 토글 제거)
+  `drop function if exists public.season_ranking(text)`,
+  `drop function if exists public.season_ranking()`,
+  `create function public.season_ranking()
    returns table(rnk bigint, ano text, nickname text, grade int, grade_name text,
-                 games int, wins int, losses int, draws int, winrate numeric)
+                 rating numeric, games int, wins int, losses int, draws int, winrate numeric)
    language sql stable security definer set search_path = public, pg_temp as $fn$
      with base as (
        select pr.ano, pr.grade, pr.grade_name,
+              round(coalesce(pr.combat_rate_avg, 0)::numeric, 2) as rating,
               pr.season_games as games, pr.season_wins as wins,
               greatest(coalesce(pr.season_games,0)-coalesce(pr.season_wins,0)-coalesce(pr.season_draws,0),0) as losses,
               coalesce(pr.season_draws,0) as draws,
@@ -135,19 +138,14 @@ const SETUP = [
        from public.player_record pr
        where coalesce(pr.season_games,0) > 0
      )
-     select row_number() over (order by
-               case when p_sort='games'   then b.games end desc nulls last,
-               case when p_sort='winrate' then b.winrate end desc nulls last,
-               case when p_sort='wins'    then b.wins end desc nulls last,
-               case when p_sort='grade'   then -b.grade end desc nulls last,
-               -b.grade desc, b.wins desc, b.games desc) as rnk,
+     select row_number() over (order by b.rating desc nulls last, b.wins desc, b.games desc) as rnk,
             b.ano, coalesce(ps.nickname,'') as nickname, b.grade, b.grade_name,
-            b.games, b.wins, b.losses, b.draws, b.winrate
+            b.rating, b.games, b.wins, b.losses, b.draws, b.winrate
      from base b left join public.player_summary ps on ps.ano = b.ano
      order by rnk;
    $fn$`,
-  `revoke execute on function public.season_ranking(text) from public, anon`,
-  `grant execute on function public.season_ranking(text) to authenticated`,
+  `revoke execute on function public.season_ranking() from public, anon`,
+  `grant execute on function public.season_ranking() to authenticated`,
 ];
 
 const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,season_games,season_wins,season_losses,season_draws,season_winrate";

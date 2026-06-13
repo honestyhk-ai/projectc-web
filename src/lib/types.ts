@@ -216,14 +216,14 @@ export interface PlayerRecord {
   season_winrate: number | null;
 }
 
-// 이번 시즌 랭킹대전 순위 (season_ranking RPC) — player_record.season_* + 현재 등급
-export type SeasonSort = "grade" | "wins" | "winrate" | "games";
+// 이번 시즌 랭킹대전 순위 (season_ranking RPC) — 클라이언트 전투 평점(rating) 순
 export interface SeasonRankRow {
   rnk: number;
   ano: string;
   nickname: string;
   grade: number | null;
   grade_name: string;
+  rating: number;
   games: number;
   wins: number;
   losses: number;

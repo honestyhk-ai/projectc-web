@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import type { SeasonRankRow, SeasonSort } from "../lib/types";
+import type { SeasonRankRow } from "../lib/types";
 import GradeBadge from "../components/GradeBadge";
 
-const SORTS: { key: SeasonSort; label: string }[] = [
-  { key: "wins", label: "승수" },
-  { key: "winrate", label: "승률" },
-  { key: "games", label: "경기수" },
-];
 const PAGE_SIZE = 50;
 const medal = (r: number) => (r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : "");
 
 export default function Ranking() {
-  const [sort, setSort] = useState<SeasonSort>("wins");
   const [rows, setRows] = useState<SeasonRankRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -24,7 +18,7 @@ export default function Ranking() {
     async function load() {
       setLoading(true);
       // RPC 미생성/수집대기 중이어도 에러 없이 빈 목록 → "수집 대기" 안내.
-      const { data } = await supabase.rpc("season_ranking", { p_sort: sort });
+      const { data } = await supabase.rpc("season_ranking");
       if (cancelled) return;
       setRows((data as SeasonRankRow[]) ?? []);
       setLoading(false);
@@ -33,12 +27,12 @@ export default function Ranking() {
     return () => {
       cancelled = true;
     };
-  }, [sort]);
+  }, []);
 
-  // 정렬/검색 바뀌면 첫 페이지로
+  // 검색 바뀌면 첫 페이지로
   useEffect(() => {
     setPage(1);
-  }, [sort, q]);
+  }, [q]);
 
   const term = q.trim().toLowerCase();
   const filtered = useMemo(
@@ -56,14 +50,12 @@ export default function Ranking() {
     return [...set].sort((a, b) => a - b);
   }, [cur, totalPages]);
 
-  const hi = (s: SeasonSort) => sort === s;
-
   return (
     <div className="page">
       <div className="rank-head">
         <h1>이번 시즌 랭킹대전 순위</h1>
         <span className="muted" style={{ fontSize: 12 }}>
-          이번 시즌 랭크 참가자 {rows.length.toLocaleString()}명 · 클라이언트 공식 전적 기준
+          이번 시즌 랭크 참가자 {rows.length.toLocaleString()}명 · 클라이언트 전투 평점(rating) 순
         </span>
       </div>
 
@@ -74,13 +66,6 @@ export default function Ranking() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-        </div>
-        <div className="seg-group">
-          {SORTS.map((s) => (
-            <button key={s.key} className={`seg ${hi(s.key) ? "on" : ""}`} onClick={() => setSort(s.key)}>
-              {s.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -94,6 +79,7 @@ export default function Ranking() {
                 <th className="c">#</th>
                 <th>티어</th>
                 <th>플레이어</th>
+                <th className="c">평점</th>
                 <th className="c">승</th>
                 <th className="c">패</th>
                 <th className="c">승률</th>
@@ -116,6 +102,9 @@ export default function Ranking() {
                     <span className="ano muted"> {r.ano}</span>
                   </td>
                   <td className="c">
+                    <b>{r.rating}</b>
+                  </td>
+                  <td className="c">
                     <b style={{ color: "var(--win)" }}>{r.wins}</b>
                   </td>
                   <td className="c muted">{r.losses}</td>
@@ -125,7 +114,7 @@ export default function Ranking() {
               ))}
               {pageRows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="center-text muted">
+                  <td colSpan={8} className="center-text muted">
                     {q ? "검색 결과가 없습니다." : "이번 시즌 랭크 데이터가 없습니다. (수집 대기)"}
                   </td>
                 </tr>
