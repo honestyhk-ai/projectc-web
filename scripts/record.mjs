@@ -77,6 +77,14 @@ async function collect(ano) {
     season_losses: season ? intf(season, "totalLoseCount") : null,
     season_draws: season ? intf(season, "totalDrawCount") : null,
     season_winrate: season ? intf(season, "totalWinRate") : null,
+    // 진영별 전적(통산) + 탈주(연결끊김) 횟수. elf=신성연합, unDead=불사군단.
+    elf_wins: intf(career, "elfWinCount"),
+    elf_losses: intf(career, "elfLoseCount"),
+    elf_draws: intf(career, "elfDrawCount"),
+    undead_wins: intf(career, "unDeadWinCount"),
+    undead_losses: intf(career, "unDeadLoseCount"),
+    undead_draws: intf(career, "undeadDrawCount"),
+    disconnect_count: intf(career, "disConnectCount"),
   };
   return row;
 }
@@ -115,6 +123,9 @@ create table if not exists public.player_record (
   career_games int, career_wins int, career_losses int, career_draws int,
   ranked_total_games int, ranked_total_wins int, ranked_total_losses int, ranked_total_draws int,
   season_games int, season_wins int, season_losses int, season_draws int, season_winrate int,
+  elf_wins int, elf_losses int, elf_draws int,
+  undead_wins int, undead_losses int, undead_draws int,
+  disconnect_count int,
   updated_at timestamptz default now()
 )`;
 
@@ -125,6 +136,14 @@ const SETUP = [
   `alter table public.player_record add column if not exists ranked_total_wins int`,
   `alter table public.player_record add column if not exists ranked_total_losses int`,
   `alter table public.player_record add column if not exists ranked_total_draws int`,
+  // 진영별 전적 + 탈주 횟수 컬럼 추가(멱등)
+  `alter table public.player_record add column if not exists elf_wins int`,
+  `alter table public.player_record add column if not exists elf_losses int`,
+  `alter table public.player_record add column if not exists elf_draws int`,
+  `alter table public.player_record add column if not exists undead_wins int`,
+  `alter table public.player_record add column if not exists undead_losses int`,
+  `alter table public.player_record add column if not exists undead_draws int`,
+  `alter table public.player_record add column if not exists disconnect_count int`,
   `create or replace function public.official_record(p_ano text)
    returns setof public.player_record
    language sql stable security definer set search_path = public as $fn$
@@ -160,7 +179,7 @@ const SETUP = [
   `grant execute on function public.season_ranking() to authenticated`,
 ];
 
-const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,ranked_total_games,ranked_total_wins,ranked_total_losses,ranked_total_draws,season_games,season_wins,season_losses,season_draws,season_winrate";
+const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,ranked_total_games,ranked_total_wins,ranked_total_losses,ranked_total_draws,season_games,season_wins,season_losses,season_draws,season_winrate,elf_wins,elf_losses,elf_draws,undead_wins,undead_losses,undead_draws,disconnect_count";
 const COLN = COLS.split(",").length;
 
 async function main() {
@@ -203,7 +222,9 @@ async function main() {
           r.kill_avg, r.assist_avg, r.level_avg, r.gold_avg, r.dispel_avg, r.potion_avg, r.creep_kill_avg,
           r.career_games, r.career_wins, r.career_losses, r.career_draws,
           r.ranked_total_games, r.ranked_total_wins, r.ranked_total_losses, r.ranked_total_draws,
-          r.season_games, r.season_wins, r.season_losses, r.season_draws, r.season_winrate);
+          r.season_games, r.season_wins, r.season_losses, r.season_draws, r.season_winrate,
+          r.elf_wins, r.elf_losses, r.elf_draws,
+          r.undead_wins, r.undead_losses, r.undead_draws, r.disconnect_count);
       }
       await db.query(`insert into public.player_record (${COLS}) values ${ph.join(",")}`, vals);
     }

@@ -66,6 +66,12 @@ export default function DetailCard({
         ? "이번 시즌 랭크 기록 없음"
         : "-";
 
+  // 진영별 전적(통산). wins/losses/draws → record() 헬퍼로 "N승 M무 K패 (R%)".
+  const factionRec = (w?: number | null, l?: number | null, d?: number | null) =>
+    w == null ? "-" : record((w ?? 0) + (l ?? 0) + (d ?? 0), w, d);
+  const elfRec = rec && rec.elf_wins != null ? factionRec(rec.elf_wins, rec.elf_losses, rec.elf_draws) : "-";
+  const undeadRec = rec && rec.undead_wins != null ? factionRec(rec.undead_wins, rec.undead_losses, rec.undead_draws) : "-";
+
   const n1 = (v: number | null | undefined) => (v == null ? "-" : v.toLocaleString());
   const kda = rec && (rec.kill_avg != null || rec.assist_avg != null)
     ? `킬 ${rec.kill_avg ?? "-"} · 어시 ${rec.assist_avg ?? "-"}`
@@ -81,6 +87,9 @@ export default function DetailCard({
         {row("전체 총전적", totalRec, "모든 시즌 · 랭크+일반 합계")}
         {row("랭킹대전 총전적", rankedRec, "모든 시즌 랭킹대전 누적")}
         {row("시즌 전적", seasonRec, "이번 시즌 랭킹대전 전적")}
+        {row("신성연합 전적", elfRec, "신성연합 진영 통산 전적")}
+        {row("불사군단 전적", undeadRec, "불사군단 진영 통산 전적")}
+        {row("탈주 횟수", rec?.disconnect_count != null ? `${rec.disconnect_count}회` : "-", "연결 끊김/탈주 횟수 (통산)")}
         {row("총 기여도", rec?.total_contribute != null ? n1(rec.total_contribute) : "-")}
         {row("평균 KDA", kda, "킬·어시 평균 (데스는 공식 미제공)")}
         {row("평균 디스펠", rec?.dispel_avg != null ? rec.dispel_avg : "-")}

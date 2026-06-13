@@ -218,6 +218,14 @@ export interface PlayerRecord {
   season_losses: number | null;
   season_draws: number | null;
   season_winrate: number | null;
+  // 진영별 전적(통산) — elf=신성연합, undead=불사군단
+  elf_wins: number | null;
+  elf_losses: number | null;
+  elf_draws: number | null;
+  undead_wins: number | null;
+  undead_losses: number | null;
+  undead_draws: number | null;
+  disconnect_count: number | null; // 탈주(연결끊김) 횟수, 통산
 }
 
 // 이번 시즌 랭킹대전 순위 (season_ranking RPC) — 클라이언트 전투 평점(rating) 순
