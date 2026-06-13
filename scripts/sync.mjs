@@ -61,6 +61,29 @@ async function ensureSearchInfra(dst) {
   await dst.query(`revoke execute on function public.search_players(text) from public, anon`);
   await dst.query(`grant execute on function public.search_players(text) to authenticated`);
   console.log(`  [search] player_summary 기반 search_players 적용 (과거닉 ${searchType === "ARRAY" ? "unnest" : searchType || "없음"})`);
+
+  // IP 분석 RPC 타임아웃 수정 -----------------------------------------------
+  //  - player_ips: 단일 계정 game_player 스캔 → game_player(ano) 인덱스로 가속.
+  //  - ip_shared_accounts: 기존엔 game_player(108만행)를 nicks·gcounts 로 반복 스캔해 statement timeout 발생.
+  //    → game_player 를 버리고 player_ip(3.3만)+player_summary(2만) 만으로 재작성(security definer).
+  //    game_count 는 계정 총게임수(player_summary.game_count) 로 대체(IP별 카운트 대신 — 속도 우선).
+  await dst.query(`create index if not exists idx_gp_ano on public.game_player(ano)`);
+  await dst.query(`
+    create or replace function public.ip_shared_accounts(p_ano text)
+    returns table(ip text, ano text, nickname text, game_count bigint)
+    language sql stable security definer set search_path = public, pg_temp as $fn$
+      with ips as (select ip from public.player_ip where ano = p_ano)
+      select pi.ip, pi.ano,
+             coalesce(ps.nickname,'') as nickname,
+             coalesce(ps.game_count,0)::bigint as game_count
+      from public.player_ip pi
+      left join public.player_summary ps on ps.ano = pi.ano
+      where pi.ip in (select ip from ips)
+      order by pi.ip, game_count desc
+    $fn$`);
+  await dst.query(`revoke execute on function public.ip_shared_accounts(text) from public, anon`);
+  await dst.query(`grant execute on function public.ip_shared_accounts(text) to authenticated`);
+  console.log("  [ip] ip_shared_accounts 재작성(player_ip+player_summary, definer) + idx_gp_ano 인덱스");
 }
 
 async function copyRange(table, where) {

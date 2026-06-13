@@ -129,29 +129,29 @@ language sql stable as $$
 $$;
 
 -- 같은 IP를 공유하는 계정들 (IP별)
+-- 주의: 기존엔 game_player(108만행)를 반복 스캔해 흔한 /16 프리픽스에서 statement timeout 발생.
+--       game_player 를 버리고 player_ip(3.3만)+player_summary(2만) 만으로 재작성(security definer).
+--       game_count 는 계정 총게임수(player_summary)로 대체(IP별 카운트 대신 — 속도 우선).
+--       (운영 적용은 scripts/sync.mjs 의 ensureSearchInfra 가 멱등 프로비저닝)
 create or replace function public.ip_shared_accounts(p_ano text)
 returns table(ip text, ano text, nickname text, game_count bigint)
-language sql stable as $$
-  with ips as (select ip from player_ip where ano = p_ano),
-  all_accounts as (select distinct pi.ano, pi.ip from player_ip pi where pi.ip in (select ip from ips)),
-  nicks as (
-    select distinct on (gp.ano) gp.ano, gp.nickname
-    from game_player gp join game g on g."gameID" = gp."gameID"
-    where gp.nickname <> '' and gp.ano in (select ano from all_accounts)
-    order by gp.ano, g.date desc),
-  gcounts as (
-    select gp.ano, gp.ip, count(distinct gp."gameID") as cnt
-    from game_player gp
-    where gp.ano in (select ano from all_accounts) and gp.ip in (select ip from ips)
-    group by gp.ano, gp.ip)
-  select a.ip, a.ano, coalesce(n.nickname, '') as nickname, coalesce(gc.cnt, 0) as game_count
-  from all_accounts a
-  left join nicks n on n.ano = a.ano
-  left join gcounts gc on gc.ano = a.ano and gc.ip = a.ip
-  order by a.ip, game_count desc;
+language sql stable security definer set search_path = public, pg_temp as $$
+  with ips as (select ip from public.player_ip where ano = p_ano)
+  select pi.ip, pi.ano,
+         coalesce(ps.nickname, '') as nickname,
+         coalesce(ps.game_count, 0)::bigint as game_count
+  from public.player_ip pi
+  left join public.player_summary ps on ps.ano = pi.ano
+  where pi.ip in (select ip from ips)
+  order by pi.ip, game_count desc;
 $$;
 
-revoke execute on function public.player_ips(text), public.ip_shared_accounts(text) from anon;
+-- player_ips 가속용 인덱스(단일 계정 game_player 조회)
+create index if not exists idx_gp_ano on public.game_player(ano);
+
+-- definer 함수는 public 에 기본 부여되므로 public 까지 회수.
+revoke execute on function public.player_ips(text)          from anon;
+revoke execute on function public.ip_shared_accounts(text)  from public, anon;
 grant  execute on function public.player_ips(text), public.ip_shared_accounts(text) to authenticated;
 
 -- ============================================================================
