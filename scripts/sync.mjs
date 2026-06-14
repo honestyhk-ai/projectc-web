@@ -124,6 +124,8 @@ async function ensureSearchInfra(dst) {
   const gradeSel = hasGrade
     ? "pg.grade, coalesce(pg.grade_name, pr.grade_name) as grade_name, pg.official_rank, pg.point"
     : "pr.grade, pr.grade_name, null::int as official_rank, null::int as point";
+  // 반환 시그니처가 바뀌면 create or replace 로는 "cannot change return type" → 먼저 drop.
+  await dst.query(`drop function if exists public.multi_search(text[])`);
   await dst.query(`
     create or replace function public.multi_search(p_nicks text[])
     returns table(idx int, input_nick text, found boolean,
