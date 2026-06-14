@@ -65,11 +65,27 @@ export default function Profile() {
     setRefreshing(true);
     setRefreshMsg(null);
     try {
-      const { data, error } = await supabase.functions.invoke("refresh-record", { body: { ano } });
-      if (error) throw error;
-      const record = (data as { record?: Partial<PlayerRecord> } | null)?.record;
-      if (!record) throw new Error("기록을 찾을 수 없습니다");
-      setRec((prev) => ({ ...(prev ?? {}), ...record } as PlayerRecord));
+      // 공식 전적(rec) + 최근 게임(원본 wqlav 직접 조회) 동시 갱신. 하나가 실패해도 나머지는 반영.
+      const [recRes, gamesRes] = await Promise.allSettled([
+        supabase.functions.invoke("refresh-record", { body: { ano } }),
+        supabase.functions.invoke("refresh-games", { body: { ano, limit: 30 } }),
+      ]);
+      let ok = false;
+      if (recRes.status === "fulfilled" && !recRes.value.error) {
+        const record = (recRes.value.data as { record?: Partial<PlayerRecord> } | null)?.record;
+        if (record) {
+          setRec((prev) => ({ ...(prev ?? {}), ...record } as PlayerRecord));
+          ok = true;
+        }
+      }
+      if (gamesRes.status === "fulfilled" && !gamesRes.value.error) {
+        const gs = (gamesRes.value.data as { games?: RecentGame[] } | null)?.games;
+        if (gs) {
+          setGames(gs);
+          ok = true;
+        }
+      }
+      if (!ok) throw new Error("갱신 실패");
       const now = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
       setRefreshMsg(`방금 갱신됨 · ${now}`);
     } catch (e) {
