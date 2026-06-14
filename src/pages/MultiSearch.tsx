@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { cleanHeroes, winRate, gradeLabel } from "../lib/types";
+import { winRate, gradeLabel } from "../lib/types";
 import type { MultiSearchRow } from "../lib/types";
+import { heroName } from "../lib/heroNames";
 import GradeBadge from "../components/GradeBadge";
+import Hero from "../components/Hero";
 
-// op.gg 멀티서치: 영웅선택창 닉을 줄바꿈/콤마로 여러 개 붙여넣으면 팀원 전적·영웅 선호도를 한 화면에.
+// op.gg 멀티서치: 영웅선택창 닉을 줄바꿈/콤마로 여러 개 붙여넣으면 팀원 전적·주력영웅을 한 화면에.
 // 게임 클라를 전혀 건드리지 않으므로(안티치트 무관) 닉 입력은 수동(복붙).
 const MAX_NICKS = 10;
 
@@ -29,6 +31,22 @@ function streakLabel(s: number | null): { text: string; cls: string } | null {
   return s > 0
     ? { text: `🔥 ${s}연승`, cls: "win" }
     : { text: `❄️ ${-s}연패`, cls: "loss" };
+}
+
+// player_record(공식 RecordInfo) 우선, 없으면 player_winrate_summary 로 폴백.
+function seasonStat(r: MultiSearchRow): { games: number; winrate: number } | null {
+  if ((r.season_games ?? 0) > 0)
+    return { games: r.season_games!, winrate: r.season_winrate ?? winRate(r.season_wins ?? 0, r.season_games!) };
+  if ((r.sum_ranked_games ?? 0) > 0)
+    return { games: r.sum_ranked_games!, winrate: winRate(r.sum_ranked_wins ?? 0, r.sum_ranked_games!) };
+  return null;
+}
+function careerStat(r: MultiSearchRow): { games: number; winrate: number } | null {
+  if ((r.career_games ?? 0) > 0)
+    return { games: r.career_games!, winrate: winRate(r.career_wins ?? 0, r.career_games!) };
+  if ((r.sum_total_games ?? 0) > 0)
+    return { games: r.sum_total_games!, winrate: winRate(r.sum_total_wins ?? 0, r.sum_total_games!) };
+  return null;
 }
 
 export default function MultiSearch() {
@@ -83,7 +101,7 @@ export default function MultiSearch() {
                 <th>이번 시즌(랭크)</th>
                 <th>통산</th>
                 <th>평균 K/A · 평점</th>
-                <th>영웅 선호도</th>
+                <th>주력 영웅</th>
                 <th>연속</th>
               </tr>
             </thead>
@@ -92,17 +110,14 @@ export default function MultiSearch() {
                 if (!r.found || !r.ano) {
                   return (
                     <tr key={r.idx} className="multi-row notfound">
-                      <td>
-                        <span className="nick">{r.input_nick}</span>
-                      </td>
+                      <td><span className="nick">{r.input_nick}</span></td>
                       <td colSpan={6} className="muted">기록 없음</td>
                     </tr>
                   );
                 }
-                const sg = r.season_games ?? 0;
-                const cg = r.career_games ?? 0;
-                const like = cleanHeroes(r.like_hero);
-                const best = cleanHeroes(r.max_rate_hero);
+                const ssn = seasonStat(r);
+                const car = careerStat(r);
+                const heroes = (r.top_heroes ?? []).slice(0, 6);
                 const st = streakLabel(r.streak);
                 return (
                   <tr key={r.idx} className="multi-row">
@@ -116,27 +131,21 @@ export default function MultiSearch() {
                     </td>
                     <td>
                       {r.grade_name ? (
-                        <GradeBadge icon={r.grade} text={gradeLabel({ grade_name: r.grade_name, point: r.point })} />
+                        <GradeBadge icon={r.grade} text={gradeLabel({ grade_name: r.grade_name, point: r.point })} size={26} />
                       ) : (
                         <span className="muted">—</span>
                       )}
                     </td>
                     <td>
-                      {sg > 0 ? (
-                        <>
-                          <b>{r.season_winrate ?? winRate(r.season_wins ?? 0, sg)}%</b>
-                          <span className="muted"> · {sg}판</span>
-                        </>
+                      {ssn ? (
+                        <><b className="wr">{ssn.winrate}%</b><span className="muted"> · {ssn.games}판</span></>
                       ) : (
                         <span className="muted">—</span>
                       )}
                     </td>
                     <td>
-                      {cg > 0 ? (
-                        <>
-                          <b>{winRate(r.career_wins ?? 0, cg)}%</b>
-                          <span className="muted"> · {cg}판</span>
-                        </>
+                      {car ? (
+                        <><b className="wr">{car.winrate}%</b><span className="muted"> · {car.games}판</span></>
                       ) : (
                         <span className="muted">—</span>
                       )}
@@ -154,15 +163,14 @@ export default function MultiSearch() {
                       )}
                     </td>
                     <td className="hero-cell">
-                      {like.length > 0 || best.length > 0 ? (
-                        <>
-                          {like.length > 0 && (
-                            <div><span className="hero-tag">선호</span> {like.join(", ")}</div>
-                          )}
-                          {best.length > 0 && (
-                            <div><span className="hero-tag win">최고승률</span> {best.join(", ")}</div>
-                          )}
-                        </>
+                      {heroes.length > 0 ? (
+                        <div className="hero-icons">
+                          {heroes.map((no) => (
+                            <span key={no} className="hero-ico" title={heroName(no)}>
+                              <Hero no={no} size={36} />
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span className="muted">—</span>
                       )}

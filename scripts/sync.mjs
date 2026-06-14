@@ -112,14 +112,13 @@ async function ensureSearchInfra(dst) {
     console.log("  [rank] player_grade 없음 → official_ranking 생략(grades 워크플로 선행 필요)");
   }
 
-  // 멀티서치(op.gg 멀티) — 닉네임 배열을 입력 순서대로 1행씩 해석해 전적·영웅 선호도 반환.
-  //   각 닉 → player_summary 에서 정확일치(현재닉/과거닉/ano) 우선, 동률은 game_count 큰 계정.
-  //   player_record / player_grade 를 left join. 두 소스의 컬럼은 워크플로 선후행에 따라
-  //   아직 없을 수 있으니 존재 여부로 SELECT 식을 조건 구성(멱등·자가치유).
-  const prHasHero = await hasCol("player_record", "like_hero");
+  // 멀티서치(op.gg 멀티) — 닉네임 배열을 입력 순서대로 1행씩 해석해 전적·주력영웅(초상화) 반환.
+  //   각 닉 → player_summary 에서 정확일치(현재닉/과거닉/ano) 우선.
+  //   ⚠️ 한 닉이 2계정으로 갈리는 경우(동명/부계정) "기록 있는 계정"을 우선 해석 →
+  //      예전엔 game_count 만 보고 기록 없는 ano 를 골라 "등록돼도 정보 안 보임" 발생했음.
+  //   주력영웅 top6 은 game_player(idx_gp_ano) 집계로 항상 제공. player_record 가 없어도
+  //   player_winrate_summary 로 통산/랭크 전적을 폴백 표시(sum_* 컬럼).
   const prHasStreak = await hasCol("player_record", "streak");
-  const likeSel = prHasHero ? "pr.like_hero" : "null::text";
-  const maxHeroSel = prHasHero ? "pr.max_rate_hero" : "null::text";
   const streakSel = prHasStreak ? "pr.streak" : "null::int";
   const gradeJoin = hasGrade ? "left join public.player_grade pg on pg.ano = r.ano" : "";
   const gradeSel = hasGrade
@@ -134,7 +133,8 @@ async function ensureSearchInfra(dst) {
       career_games int, career_wins int, career_losses int,
       ranked_total_games int, ranked_total_wins int, ranked_total_losses int,
       kill_avg numeric, assist_avg numeric, combat_rate_avg numeric, total_contribute numeric,
-      like_hero text, max_rate_hero text, streak int, total_game_count bigint)
+      streak int, total_game_count bigint, top_heroes text[],
+      sum_total_games int, sum_total_wins int, sum_ranked_games int, sum_ranked_wins int)
     language sql stable security definer set search_path = public, pg_temp as $fn$
       with inp as (
         select ord::int as idx, btrim(n) as input_nick
@@ -146,7 +146,10 @@ async function ensureSearchInfra(dst) {
            where lower(ps.nickname) = lower(i.input_nick)
               or lower(ps.ano) = lower(i.input_nick)
               or exists (select 1 from unnest(ps.search_nicknames) sn where lower(sn) = lower(i.input_nick))
-           order by (lower(ps.nickname) = lower(i.input_nick)) desc, ps.game_count desc nulls last
+           order by (lower(ps.nickname) = lower(i.input_nick)) desc,
+                    (exists (select 1 from public.player_record pr2 where pr2.ano = ps.ano)) desc,
+                    (exists (select 1 from public.player_winrate_summary ws2 where ws2.ano = ps.ano)) desc,
+                    ps.game_count desc nulls last
            limit 1) as ano
         from inp i
         where char_length(i.input_nick) >= 1
@@ -158,17 +161,32 @@ async function ensureSearchInfra(dst) {
         pr.career_games, pr.career_wins, pr.career_losses,
         pr.ranked_total_games, pr.ranked_total_wins, pr.ranked_total_losses,
         pr.kill_avg, pr.assist_avg, pr.combat_rate_avg, pr.total_contribute,
-        ${likeSel} as like_hero, ${maxHeroSel} as max_rate_hero, ${streakSel} as streak,
-        coalesce(ps.game_count, 0)::bigint as total_game_count
+        ${streakSel} as streak,
+        coalesce(ps.game_count, 0)::bigint as total_game_count,
+        th.heroes as top_heroes,
+        ws.total_games as sum_total_games, ws.total_wins as sum_total_wins,
+        ws.ranked_games as sum_ranked_games, ws.ranked_wins as sum_ranked_wins
       from resolved r
       left join public.player_summary ps on ps.ano = r.ano
       left join public.player_record pr on pr.ano = r.ano
+      left join public.player_winrate_summary ws on ws.ano = r.ano
+      left join lateral (
+        select array_agg(t.hn order by t.c desc) as heroes
+        from (
+          select gp."heroNo" hn, count(*) c
+          from public.game_player gp
+          where gp.ano = r.ano and gp."heroNo" <> ''
+          group by gp."heroNo"
+          order by c desc
+          limit 6
+        ) t
+      ) th on true
       ${gradeJoin}
       order by r.idx
     $fn$`);
   await dst.query(`revoke execute on function public.multi_search(text[]) from public, anon`);
   await dst.query(`grant execute on function public.multi_search(text[]) to authenticated`);
-  console.log(`  [multi] multi_search 생성(영웅선호 ${prHasHero ? "포함" : "대기"}, 등급 ${hasGrade ? "조인" : "생략"})`);
+  console.log(`  [multi] multi_search 생성(주력영웅 top6 + summary 폴백, 등급 ${hasGrade ? "조인" : "생략"})`);
 }
 
 async function copyRange(table, where) {

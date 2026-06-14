@@ -265,10 +265,14 @@ export interface MultiSearchRow {
   assist_avg: number | null;
   combat_rate_avg: number | null;
   total_contribute: number | null;
-  like_hero: string | null;
-  max_rate_hero: string | null;
   streak: number | null;
   total_game_count: number | null;
+  top_heroes: string[] | null; // 주력영웅 heroNo top6 (game_player 집계, 초상화 표시)
+  // player_record 가 없는 계정용 폴백(player_winrate_summary)
+  sum_total_games: number | null;
+  sum_total_wins: number | null;
+  sum_ranked_games: number | null;
+  sum_ranked_wins: number | null;
 }
 
 // 이번 시즌 랭킹대전 순위 (season_ranking RPC) — 클라이언트 전투 평점(rating) 순
