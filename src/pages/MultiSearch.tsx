@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { winRate, gradeLabel } from "../lib/types";
 import type { MultiSearchRow } from "../lib/types";
-import { heroName } from "../lib/heroNames";
 import GradeBadge from "../components/GradeBadge";
 import Hero from "../components/Hero";
 
@@ -73,21 +72,36 @@ export default function MultiSearch() {
     setRows((data as MultiSearchRow[]) ?? []);
   }
 
+  // 결과 화면에서 다시 검색: 입력은 유지하고 결과만 비워 검색창으로 복귀.
+  function reset() {
+    setRows([]);
+    setSearched(false);
+    setErr(null);
+  }
+
+  const showResults = rows.length > 0;
+
   return (
     <div className="page">
-      <form className="multi-form" onSubmit={onSearch}>
-        <textarea
-          className="multi-input"
-          placeholder={"닉네임을 줄바꿈 또는 콤마로 구분해 붙여넣으세요 (최대 10명)\n예)\n태블릿\nroosee, 세월"}
-          value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          rows={5}
-          autoFocus
-        />
-        <button type="submit" disabled={busy}>
-          {busy ? "조회 중…" : "전적 비교"}
-        </button>
-      </form>
+      {showResults ? (
+        <div className="multi-back">
+          <button type="button" className="back-btn" onClick={reset}>← 다시 검색</button>
+        </div>
+      ) : (
+        <form className="multi-form" onSubmit={onSearch}>
+          <textarea
+            className="multi-input"
+            placeholder={"닉네임을 줄바꿈 또는 콤마로 구분해 붙여넣으세요 (최대 10명)\n예)\n태블릿\nroosee, 세월"}
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            rows={5}
+            autoFocus
+          />
+          <button type="submit" disabled={busy}>
+            {busy ? "조회 중…" : "전적 비교"}
+          </button>
+        </form>
+      )}
 
       {err && <div className="error">{err}</div>}
 
@@ -166,8 +180,8 @@ export default function MultiSearch() {
                       {heroes.length > 0 ? (
                         <div className="hero-icons">
                           {heroes.map((no) => (
-                            <span key={no} className="hero-ico" title={heroName(no)}>
-                              <Hero no={no} size={36} />
+                            <span key={no} className="hero-ico">
+                              <Hero no={no} size={40} />
                             </span>
                           ))}
                         </div>
