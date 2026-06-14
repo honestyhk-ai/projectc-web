@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom";
-import type { RecentGame } from "../lib/types";
-import { gameTypeLabel } from "../lib/types";
+import type { RecentGame, GameResult } from "../lib/types";
+import { gameTypeLabel, campResult } from "../lib/types";
 import Hero from "./Hero";
+
+// 결과 -> 한글 라벨. unknown(승자 미기록)은 "미정".
+// 주의: liveType=1 은 "긁힐 당시 라이브"였다는 흔적일 뿐(끝난 게임도 그대로 남음) →
+//       현재 진행중 여부로 신뢰할 수 없으므로 "진행" 라벨은 쓰지 않는다.
+function resultLabel(r: GameResult): string {
+  if (r === "win") return "승";
+  if (r === "loss") return "패";
+  if (r === "draw") return "무";
+  return "미정";
+}
 
 function fmtDate(s: string): string {
   // date 가 "YYYY-MM-DD HH:MM:SS" 또는 ISO 문자열일 수 있음
@@ -16,8 +26,9 @@ export default function RecentGames({ games }: { games: RecentGame[] }) {
       {games.length === 0 && <p className="muted">경기 기록 없음.</p>}
       <div className="game-list">
         {games.map((g) => {
-          const result = g.is_win === null ? "draw" : g.is_win ? "win" : "loss";
-          const label = g.is_win === null ? "무" : g.is_win ? "승" : "패";
+          // is_win(RPC) 대신 winnerTeam+campType 로 직접 판정 — 빈값을 무승부로 오판하지 않음.
+          const result = campResult(g.campType, g.winnerTeam);
+          const label = resultLabel(result);
           return (
             <Link
               key={g.gameID}

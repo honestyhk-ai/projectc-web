@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import type { SeasonRankRow } from "../lib/types";
+import type { OfficialRankRow } from "../lib/types";
 import GradeBadge from "../components/GradeBadge";
 
 const PAGE_SIZE = 50;
 const medal = (r: number) => (r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : "");
 
 export default function Ranking() {
-  const [rows, setRows] = useState<SeasonRankRow[]>([]);
+  const [rows, setRows] = useState<OfficialRankRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -18,9 +18,9 @@ export default function Ranking() {
     async function load() {
       setLoading(true);
       // RPC 미생성/수집대기 중이어도 에러 없이 빈 목록 → "수집 대기" 안내.
-      const { data } = await supabase.rpc("season_ranking");
+      const { data } = await supabase.rpc("official_ranking");
       if (cancelled) return;
-      setRows((data as SeasonRankRow[]) ?? []);
+      setRows((data as OfficialRankRow[]) ?? []);
       setLoading(false);
     }
     void load();
@@ -53,9 +53,9 @@ export default function Ranking() {
   return (
     <div className="page">
       <div className="rank-head">
-        <h1>이번 시즌 랭킹대전 순위</h1>
+        <h1>공식 랭킹</h1>
         <span className="muted" style={{ fontSize: 12 }}>
-          이번 시즌 랭크 참가자 {rows.length.toLocaleString()}명 · 클라이언트 전투 평점(rating) 순
+          공식 등급 보유자 {rows.length.toLocaleString()}명 (현재 Top 200 + 이탈자 last-known) · 공식 순위 순
         </span>
       </div>
 
@@ -79,7 +79,7 @@ export default function Ranking() {
                 <th className="c">#</th>
                 <th>티어</th>
                 <th>플레이어</th>
-                <th className="c">평점</th>
+                <th className="c">점수</th>
                 <th className="c">승</th>
                 <th className="c">패</th>
                 <th className="c">승률</th>
@@ -102,7 +102,7 @@ export default function Ranking() {
                     <span className="ano muted"> {r.ano}</span>
                   </td>
                   <td className="c">
-                    <b>{r.rating}</b>
+                    <b>{r.point != null ? r.point.toLocaleString() : "-"}</b>
                   </td>
                   <td className="c">
                     <b style={{ color: "var(--win)" }}>{r.wins}</b>

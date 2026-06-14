@@ -243,6 +243,21 @@ export interface SeasonRankRow {
   winrate: number;
 }
 
+// 공식 등급 순위 (official_ranking RPC) — player_grade(현재 Top200 + 이탈자 last-known, ~343명) 공식 순위순
+export interface OfficialRankRow {
+  rnk: number; // 공식 순위(official_rank)
+  ano: string;
+  nickname: string;
+  grade: number | null; // 등급 아이콘 0~20
+  grade_name: string;
+  point: number | null; // 점수
+  games: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winrate: number;
+}
+
 // 순위 (ranking RPC) — 실측 랭크 통계 기준 (정렬: wins/winrate/games)
 export type RankSort = "wins" | "winrate" | "games";
 
@@ -279,11 +294,16 @@ export const FACTION: Record<string, string> = { "0": "신성연합", "1": "불�
 // 진영별 색 키 (CSS class 용)
 export const FACTION_SIDE: Record<string, "holy" | "undead"> = { "0": "holy", "1": "undead" };
 
-export type GameResult = "win" | "loss" | "draw";
+// "unknown" = 결과 미기록/진행중. winnerTeam 빈값('')이 여기에 해당(전체의 ~34%).
+// 실제 무승부는 winnerTeam 'N' 뿐(소수). 빈값을 무승부로 보지 않는다.
+export type GameResult = "win" | "loss" | "draw" | "unknown";
 
 export function campResult(campType: string, winnerTeam: string): GameResult {
-  if (winnerTeam === "" || winnerTeam === "N") return "draw";
-  return CAMP_WIN[campType] === winnerTeam ? "win" : "loss";
+  if (winnerTeam === "N") return "draw"; // 실제 무승부
+  if (winnerTeam === "E" || winnerTeam === "U") {
+    return CAMP_WIN[campType] === winnerTeam ? "win" : "loss";
+  }
+  return "unknown"; // ''(승자 미기록/진행중) 또는 예상 밖 값 → 무승부 아님
 }
 
 export function teamLabel(campType: string): string {
@@ -294,7 +314,8 @@ export function teamLabel(campType: string): string {
 export function winnerTeamLabel(winnerTeam: string): string {
   if (winnerTeam === "E") return "신성연합";
   if (winnerTeam === "U") return "불사군단";
-  if (winnerTeam === "" || winnerTeam === "N") return "무승부";
+  if (winnerTeam === "N") return "무승부";
+  if (winnerTeam === "") return "결과 미상";
   return winnerTeam;
 }
 

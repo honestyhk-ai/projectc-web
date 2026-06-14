@@ -84,6 +84,33 @@ async function ensureSearchInfra(dst) {
   await dst.query(`revoke execute on function public.ip_shared_accounts(text) from public, anon`);
   await dst.query(`grant execute on function public.ip_shared_accounts(text) to authenticated`);
   console.log("  [ip] ip_shared_accounts 재작성(player_ip+player_summary, definer) + idx_gp_ano 인덱스");
+
+  // 공식 등급 순위 목록 — player_grade(현재 Top200 + 이탈자 last-known, ~343명) 을 공식 순위순.
+  //   닉네임은 player_summary 조인(RLS on/정책없음이라 definer 필요). official_grade(grades.mjs)와 같은 데이터.
+  //   player_grade 가 아직 없을 수도 있으니(grades 워크플로 선행 전) 테이블 존재할 때만 생성.
+  const hasGrade = (await dst.query(
+    `select 1 from information_schema.tables where table_schema='public' and table_name='player_grade'`,
+  )).rowCount > 0;
+  if (hasGrade) {
+    await dst.query(`drop function if exists public.official_ranking()`);
+    await dst.query(`
+      create function public.official_ranking()
+      returns table(rnk int, ano text, nickname text, grade int, grade_name text,
+                    point int, games int, wins int, losses int, draws int, winrate numeric)
+      language sql stable security definer set search_path = public, pg_temp as $fn$
+        select pg.official_rank as rnk, pg.ano, coalesce(ps.nickname,'') as nickname,
+               pg.grade, pg.grade_name, pg.point,
+               pg.games, pg.wins, pg.losses, pg.draws, pg.winrate
+        from public.player_grade pg
+        left join public.player_summary ps on ps.ano = pg.ano
+        order by pg.official_rank asc nulls last, pg.point desc nulls last
+      $fn$`);
+    await dst.query(`revoke execute on function public.official_ranking() from public, anon`);
+    await dst.query(`grant execute on function public.official_ranking() to authenticated`);
+    console.log("  [rank] official_ranking 생성(player_grade+player_summary, definer)");
+  } else {
+    console.log("  [rank] player_grade 없음 → official_ranking 생략(grades 워크플로 선행 필요)");
+  }
 }
 
 async function copyRange(table, where) {

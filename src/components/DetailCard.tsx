@@ -1,4 +1,4 @@
-import type { NickHistoryRow, PlayerRecord, WinrateSummary } from "../lib/types";
+import type { HofRow, NickHistoryRow, PlayerRecord, WinrateSummary } from "../lib/types";
 
 function row(label: string, value: React.ReactNode, hint?: string) {
   return (
@@ -28,11 +28,13 @@ export default function DetailCard({
   nicks,
   summary,
   rec,
+  hof,
 }: {
   ano: string;
   nicks: NickHistoryRow[];
   summary: WinrateSummary | null;
   rec: PlayerRecord | null; // 클라이언트 RecordInfo 기반 (등급/평균스탯/시즌랭크)
+  hof: HofRow | null; // 공식 명예의 전당(hall_of_fame) — 공식 KDA는 시즌 Top100만 존재
 }) {
   const latestNick = nicks.length ? nicks[nicks.length - 1].nickname : "";
   const prevNicks = nicks
@@ -73,9 +75,8 @@ export default function DetailCard({
   const undeadRec = rec && rec.undead_wins != null ? factionRec(rec.undead_wins, rec.undead_losses, rec.undead_draws) : "-";
 
   const n1 = (v: number | null | undefined) => (v == null ? "-" : v.toLocaleString());
-  const kda = rec && (rec.kill_avg != null || rec.assist_avg != null)
-    ? `킬 ${rec.kill_avg ?? "-"} · 어시 ${rec.assist_avg ?? "-"}`
-    : "-";
+  // 공식 KDA 단일값(명예의 전당 KDA 컬럼). 공식은 시즌 Top 100만 공개 → 그 밖은 "-".
+  const kda = hof?.kda != null ? hof.kda.toFixed(2) : "-";
 
   return (
     <div className="card">
@@ -91,7 +92,7 @@ export default function DetailCard({
         {row("불사군단 전적", undeadRec, "불사군단 진영 통산 전적")}
         {row("탈주 횟수", rec?.disconnect_count != null ? `${rec.disconnect_count}회` : "-", "연결 끊김/탈주 횟수 (통산)")}
         {row("총 기여도", rec?.total_contribute != null ? n1(rec.total_contribute) : "-")}
-        {row("평균 KDA", kda, "킬·어시 평균 (데스는 공식 미제공)")}
+        {row("공식 KDA", kda, "공식 명예의 전당 KDA · 시즌 Top 100 진입자만 공개")}
         {row("평균 디스펠", rec?.dispel_avg != null ? rec.dispel_avg : "-")}
         {row("평균 포션", rec?.potion_avg != null ? rec.potion_avg : "-")}
         {row("평균 레벨", rec?.level_avg != null ? rec.level_avg : "-")}

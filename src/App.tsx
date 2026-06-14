@@ -11,7 +11,7 @@ function Header() {
   return (
     <header className="app-header">
       <Link to="/" className="logo">
-        ProjectC <span className="muted">전적</span>
+        CO<span className="muted">-InFo</span>
       </Link>
       <nav className="nav">
         <Link to="/" className="navlink">플레이어</Link>

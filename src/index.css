@@ -38,7 +38,7 @@ a { color: inherit; text-decoration: none; }
 }
 .logo { font-weight: 700; font-size: 18px; }
 
-main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+main { max-width: 1240px; margin: 0 auto; padding: 20px; }
 .page { display: block; }
 
 /* ---- cards ---- */
@@ -82,8 +82,12 @@ button:disabled { opacity: .6; cursor: default; }
 .refresh-btn:hover:not(:disabled) { border-color: var(--accent, #6ea8fe); }
 .refresh-btn:disabled { opacity: .6; cursor: default; }
 .refresh-msg { font-size: 12px; }
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 720px) { .profile-grid { grid-template-columns: 1fr; } }
+/* 3컬럼: 상세정보(좌) / 주력영웅(중앙) / 최근경기(우) */
+.profile-grid { display: grid; grid-template-columns: 1fr 0.95fr 1.05fr; gap: 14px; align-items: start; }
+.profile-grid .card { font-size: 13px; }
+.profile-grid .card h2 { font-size: 14px; }
+@media (max-width: 1080px) { .profile-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .profile-grid { grid-template-columns: 1fr; } }
 
 /* ---- winrate ---- */
 .wr-row { margin-bottom: 14px; }
@@ -116,31 +120,47 @@ button:disabled { opacity: .6; cursor: default; }
 /* ---- game list ---- */
 .game-list { display: flex; flex-direction: column; gap: 6px; }
 .game-row {
-  display: grid; grid-template-columns: 36px 60px 1fr 60px 120px; align-items: center;
-  gap: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
-  border-left-width: 4px;
+  display: grid; grid-template-columns: 26px 46px 1fr 38px 96px; align-items: center;
+  gap: 6px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  border-left-width: 4px; font-size: 12px;
 }
+.game-row .g-type, .game-row .g-rating, .game-row .g-date { font-size: 11px; }
 .game-row.win { border-left-color: var(--win); }
 .game-row.loss { border-left-color: var(--loss); }
 .game-row.draw { border-left-color: var(--draw); }
+.game-row.unknown { border-left-color: var(--line); }
 .game-row .g-result { font-weight: 700; }
 .game-row.win .g-result { color: var(--win); }
 .game-row.loss .g-result { color: var(--loss); }
 .game-row.draw .g-result { color: var(--draw); }
+.game-row.unknown .g-result { color: var(--muted); font-weight: 500; }
 
 /* ---- tables ---- */
 .nick-table { width: 100%; border-collapse: collapse; }
-.nick-table th, .nick-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.nick-table th, .nick-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .nick-table th { color: var(--muted); font-weight: 500; font-size: 12px; }
+
+/* ---- 경기 상세 (GameDetail) ---- */
+.detail-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.detail-head h1 { margin: 0; font-size: 20px; }
+.back-btn {
+  background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.back-btn:hover { border-color: var(--accent, #6ea8fe); }
+/* 고정 레이아웃 → 닉네임 길이와 무관하게 두 팀 표의 영웅 열이 항상 같은 위치 */
+.game-players { table-layout: fixed; }
+.game-players .c-hero { width: 72px; text-align: center; }
+.game-players .c-link { width: 64px; text-align: right; }
 
 .kv { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 12px; }
 .kv span { color: var(--muted); }
 
 /* ---- IP panel ---- */
 .ip-card h3.ip-sub { font-size: 13px; margin: 4px 0 8px; color: var(--text); }
-.ip-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
-@media (max-width: 720px) { .ip-grid { grid-template-columns: 1fr; } }
-.shared-list { max-height: 460px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+/* 좌측 컬럼(좁음) 안에 들어가므로 세로 스택 */
+.ip-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.shared-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 .shared-ip { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .shared-ip-head { font-weight: 600; font-family: monospace; margin-bottom: 6px; }
 .shared-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-top: 1px solid var(--line); }

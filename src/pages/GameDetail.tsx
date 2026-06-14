@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { GameRow, GamePlayerRow } from "../lib/types";
 import { gameTypeLabel, teamLabel, winnerTeamLabel, CAMP_WIN, FACTION_SIDE } from "../lib/types";
@@ -7,6 +7,7 @@ import Hero from "../components/Hero";
 
 export default function GameDetail() {
   const { gameId = "" } = useParams();
+  const navigate = useNavigate();
   const [game, setGame] = useState<GameRow | null>(null);
   const [players, setPlayers] = useState<GamePlayerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +46,10 @@ export default function GameDetail() {
 
   return (
     <div className="page">
-      <h1>경기 {gameId}</h1>
+      <div className="detail-head">
+        <button className="back-btn" onClick={() => navigate(-1)}>← 뒤로</button>
+        <h1>경기 {gameId}</h1>
+      </div>
       {err && <div className="error">{err}</div>}
       {loading ? (
         <div className="muted">불러오는 중…</div>
@@ -70,13 +74,13 @@ export default function GameDetail() {
               <h2 className={`team-title ${isWinner ? "win" : ""}`}>
                 {teamLabel(c)} {isWinner ? "★ 승리" : ""}
               </h2>
-              <table className="nick-table">
+              {/* table-layout:fixed + 고정폭 → 두 팀 표의 영웅 열 위치가 항상 동일하게 정렬 */}
+              <table className="nick-table game-players">
                 <thead>
                   <tr>
                     <th>닉네임</th>
-                    <th>영웅</th>
-                    <th>MVP</th>
-                    <th></th>
+                    <th className="c-hero">영웅</th>
+                    <th className="c-link"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -84,10 +88,9 @@ export default function GameDetail() {
                     .filter((p) => p.campType === c)
                     .map((p) => (
                       <tr key={p.ano}>
-                        <td>{p.nickname || "(닉 없음)"}</td>
-                        <td><Hero no={p.heroNo} size={28} /></td>
-                        <td className="muted">{p.mvpOdds ?? "-"}</td>
-                        <td>
+                        <td className="c-nick">{p.nickname || "(닉 없음)"}</td>
+                        <td className="c-hero"><Hero no={p.heroNo} size={28} /></td>
+                        <td className="c-link">
                           <Link className="link" to={`/player/${encodeURIComponent(p.ano)}`}>
                             전적
                           </Link>
