@@ -86,13 +86,7 @@ export default function DetailCard({
         {row("전 닉네임", prevNicks.length ? prevNicks.join(", ") : "-", "현재 제외 최근 2개")}
         {row("계정번호", ano)}
         {row("전체 총전적", totalRec, "공식 서버 기준 모든 시즌 · 랭크+일반 합계(완전치)")}
-        {summary?.total_games != null &&
-          row(
-            "수집 경기(표본)",
-            `${summary.total_games.toLocaleString()}판`,
-            "사이트가 수집한 경기 수 · 주력 영웅 게임수는 이 표본 기준이라 공식 총전적보다 적습니다",
-          )}
-        {row("랭킹대전 총전적", rankedRec, "모든 시즌 랭킹대전 누적")}
+        {row("랭킹대전 총전적", rankedRec, "모든 시즌 랭킹대전 누적 · 아래 '랭킹대전 영웅' 합계와 일치")}
         {row("시즌 전적", seasonRec, "이번 시즌 랭킹대전 전적")}
         {row("신성연합 전적", elfRec, "신성연합 진영 통산 전적")}
         {row("불사군단 전적", undeadRec, "불사군단 진영 통산 전적")}
