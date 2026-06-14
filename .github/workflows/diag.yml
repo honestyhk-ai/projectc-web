@@ -1,0 +1,24 @@
+name: Diag (일회용 진단)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ano:
+        description: "조회할 ano"
+        required: false
+        default: "8040"
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm --prefix scripts install --no-audit --no-fund
+      - name: Run diag
+        env:
+          LCMQL_DB_URL: ${{ secrets.LCMQL_DB_URL }}
+        run: node scripts/diag.mjs "${{ github.event.inputs.ano }}"
