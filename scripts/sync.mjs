@@ -189,6 +189,31 @@ async function ensureSearchInfra(dst) {
   await dst.query(`revoke execute on function public.multi_search(text[]) from public, anon`);
   await dst.query(`grant execute on function public.multi_search(text[]) to authenticated`);
   console.log(`  [multi] multi_search 생성(주력영웅 top6 + summary 폴백, 등급 ${hasGrade ? "조인" : "생략"})`);
+
+  // 랭킹대전 영웅(공식 전체시즌) — ranked-heroes 엣지함수가 RecordInfo characterNo 로 채우는 캐시 테이블.
+  //   우리 game_player 표본이 일부라 영웅수가 공식과 안 맞는 문제 → 이 테이블은 공식 기준.
+  await dst.query(`
+    create table if not exists public.player_hero_ranked (
+      ano text not null,
+      hero_no text not null,
+      games int, wins int, losses int, select_count int,
+      updated_at timestamptz default now(),
+      primary key (ano, hero_no)
+    )`);
+  await dst.query(`alter table public.player_hero_ranked enable row level security`);
+  await dst.query(`
+    create or replace function public.player_ranked_heroes(p_ano text)
+    returns table(hero_no text, games int, wins int, losses int, winrate numeric, select_count int, updated_at timestamptz)
+    language sql stable security definer set search_path = public, pg_temp as $fn$
+      select hero_no, games, wins, losses,
+             case when games > 0 then round(100.0 * wins / games, 1) else null end as winrate,
+             select_count, updated_at
+      from public.player_hero_ranked where ano = p_ano
+      order by games desc nulls last
+    $fn$`);
+  await dst.query(`revoke execute on function public.player_ranked_heroes(text) from public, anon`);
+  await dst.query(`grant execute on function public.player_ranked_heroes(text) to authenticated`);
+  console.log("  [hero] player_hero_ranked 테이블 + player_ranked_heroes RPC 보장");
 }
 
 async function copyRange(table, where) {

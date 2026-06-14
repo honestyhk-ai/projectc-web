@@ -98,6 +98,17 @@ export interface IpSearchRow {
   ip_total: number;
 }
 
+// 랭킹대전 영웅 — 공식 전체시즌 (player_ranked_heroes RPC / ranked-heroes 엣지함수)
+export interface RankedHeroRow {
+  hero_no: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winrate: number | null;
+  select_count: number | null;
+  updated_at?: string;
+}
+
 // 주력 영웅 (player_heroes RPC)
 export interface HeroStat {
   hero_no: string;

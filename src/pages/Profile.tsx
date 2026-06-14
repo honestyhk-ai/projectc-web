@@ -8,6 +8,7 @@ import NickHistory from "../components/NickHistory";
 import IpPanel from "../components/IpPanel";
 import SuspectPanel from "../components/SuspectPanel";
 import HeroStats from "../components/HeroStats";
+import RankedHeroes from "../components/RankedHeroes";
 import DetailCard from "../components/DetailCard";
 import OfficialRank from "../components/OfficialRank";
 
@@ -134,6 +135,7 @@ export default function Profile() {
               <IpPanel ano={ano} />
             </div>
             <div className="col-center">
+              <RankedHeroes ano={ano} />
               <HeroStats ano={ano} />
             </div>
             <div className="col-right">
