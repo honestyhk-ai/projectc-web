@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 import AuthGate from "./auth/AuthGate";
 import { supabase } from "./lib/supabase";
 import Search from "./pages/Search";
+import MultiSearch from "./pages/MultiSearch";
 import Profile from "./pages/Profile";
 import GameDetail from "./pages/GameDetail";
 import IpSearch from "./pages/IpSearch";
@@ -15,6 +16,7 @@ function Header() {
       </Link>
       <nav className="nav">
         <Link to="/" className="navlink">플레이어</Link>
+        <Link to="/multi" className="navlink">멀티서치</Link>
         <Link to="/ranking" className="navlink">순위</Link>
         <Link to="/ip" className="navlink">IP 검색</Link>
         <button className="link" onClick={() => supabase.auth.signOut()}>
@@ -33,6 +35,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<Search />} />
+            <Route path="/multi" element={<MultiSearch />} />
             <Route path="/ranking" element={<Ranking />} />
             <Route path="/ip" element={<IpSearch />} />
             <Route path="/player/:ano" element={<Profile />} />
