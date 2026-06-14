@@ -28,10 +28,16 @@ export default function HeroStats({ ano }: { ano: string }) {
   }, [ano]);
 
   const shown = showAll ? rows : rows.slice(0, 12);
+  const collected = rows.reduce((s, h) => s + (h.games ?? 0), 0);
 
   return (
     <div className="card">
-      <h2>주력 영웅 ({rows.length}종)</h2>
+      <h2>주력 영웅 ({rows.length}종 · 수집 {collected.toLocaleString()}경기)</h2>
+      {rows.length > 0 && (
+        <p className="muted" style={{ fontSize: 11, marginTop: -4, marginBottom: 8 }}>
+          ※ 영웅별 수치는 사이트가 <b>수집한 경기 표본</b> 기준이라, 공식 서버의 <b>총전적</b>(상세 정보)보다 적습니다.
+        </p>
+      )}
       {err && <div className="error">{err}</div>}
       {loading ? (
         <div className="muted">불러오는 중…</div>
