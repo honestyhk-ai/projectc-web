@@ -85,6 +85,12 @@ async function collect(ano) {
     undead_losses: intf(career, "unDeadLoseCount"),
     undead_draws: intf(career, "undeadDrawCount"),
     disconnect_count: intf(career, "disConnectCount"),
+    // 영웅 선호도(통산, winLoseTendency) — 게임이 콤마구분 이름으로 줌(예 "레이첼, 세드릭, ").
+    like_hero: strf(career, "likeRateHero"),   // 선호(가장 많이 플레이)
+    hate_hero: strf(career, "hateRateHero"),   // 기피(가장 적게)
+    max_rate_hero: strf(career, "maxRateHero"), // 최고 승률
+    min_rate_hero: strf(career, "minRateHero"), // 최저 승률
+    streak: intf(career, "consecutiveWinLose"), // 현재 연속(+연승/−연패로 추정)
   };
   return row;
 }
@@ -126,6 +132,8 @@ create table if not exists public.player_record (
   elf_wins int, elf_losses int, elf_draws int,
   undead_wins int, undead_losses int, undead_draws int,
   disconnect_count int,
+  like_hero text, hate_hero text, max_rate_hero text, min_rate_hero text,
+  streak int,
   updated_at timestamptz default now()
 )`;
 
@@ -144,6 +152,12 @@ const SETUP = [
   `alter table public.player_record add column if not exists undead_losses int`,
   `alter table public.player_record add column if not exists undead_draws int`,
   `alter table public.player_record add column if not exists disconnect_count int`,
+  // 영웅 선호도 + 연속 승/패 컬럼 추가(멱등)
+  `alter table public.player_record add column if not exists like_hero text`,
+  `alter table public.player_record add column if not exists hate_hero text`,
+  `alter table public.player_record add column if not exists max_rate_hero text`,
+  `alter table public.player_record add column if not exists min_rate_hero text`,
+  `alter table public.player_record add column if not exists streak int`,
   `create or replace function public.official_record(p_ano text)
    returns setof public.player_record
    language sql stable security definer set search_path = public as $fn$
@@ -179,7 +193,7 @@ const SETUP = [
   `grant execute on function public.season_ranking() to authenticated`,
 ];
 
-const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,ranked_total_games,ranked_total_wins,ranked_total_losses,ranked_total_draws,season_games,season_wins,season_losses,season_draws,season_winrate,elf_wins,elf_losses,elf_draws,undead_wins,undead_losses,undead_draws,disconnect_count";
+const COLS = "ano,grade_name,grade,grade_icon,total_contribute,combat_contribute_avg,combat_rate_avg,kill_avg,assist_avg,level_avg,gold_avg,dispel_avg,potion_avg,creep_kill_avg,career_games,career_wins,career_losses,career_draws,ranked_total_games,ranked_total_wins,ranked_total_losses,ranked_total_draws,season_games,season_wins,season_losses,season_draws,season_winrate,elf_wins,elf_losses,elf_draws,undead_wins,undead_losses,undead_draws,disconnect_count,like_hero,hate_hero,max_rate_hero,min_rate_hero,streak";
 const COLN = COLS.split(",").length;
 
 async function main() {
@@ -224,7 +238,8 @@ async function main() {
           r.ranked_total_games, r.ranked_total_wins, r.ranked_total_losses, r.ranked_total_draws,
           r.season_games, r.season_wins, r.season_losses, r.season_draws, r.season_winrate,
           r.elf_wins, r.elf_losses, r.elf_draws,
-          r.undead_wins, r.undead_losses, r.undead_draws, r.disconnect_count);
+          r.undead_wins, r.undead_losses, r.undead_draws, r.disconnect_count,
+          r.like_hero, r.hate_hero, r.max_rate_hero, r.min_rate_hero, r.streak);
       }
       await db.query(`insert into public.player_record (${COLS}) values ${ph.join(",")}`, vals);
     }

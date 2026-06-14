@@ -226,6 +226,49 @@ export interface PlayerRecord {
   undead_losses: number | null;
   undead_draws: number | null;
   disconnect_count: number | null; // 탈주(연결끊김) 횟수, 통산
+  // 영웅 선호도(통산) — 게임이 콤마구분 이름으로 제공("레이첼, 세드릭, "). cleanHeroes() 로 정리.
+  like_hero?: string | null; // 선호(가장 많이 플레이)
+  hate_hero?: string | null; // 기피
+  max_rate_hero?: string | null; // 최고 승률
+  min_rate_hero?: string | null; // 최저 승률
+  streak?: number | null; // 현재 연속: 양수=연승, 음수=연패 (게임 제공 consecutiveWinLose)
+}
+
+// "레이첼, 세드릭, " → ["레이첼","세드릭"]
+export function cleanHeroes(s: string | null | undefined): string[] {
+  if (!s) return [];
+  return s.split(",").map((x) => x.trim()).filter(Boolean);
+}
+
+// 멀티서치 (multi_search RPC) — 입력 닉 1개당 1행, 입력 순서(idx) 유지.
+export interface MultiSearchRow {
+  idx: number;
+  input_nick: string;
+  found: boolean;
+  ano: string | null;
+  nickname: string;
+  grade: number | null; // 등급 아이콘 0~20
+  grade_name: string | null;
+  official_rank: number | null; // 공식 Top200 순위
+  point: number | null;
+  season_games: number | null;
+  season_wins: number | null;
+  season_losses: number | null;
+  season_winrate: number | null;
+  career_games: number | null;
+  career_wins: number | null;
+  career_losses: number | null;
+  ranked_total_games: number | null;
+  ranked_total_wins: number | null;
+  ranked_total_losses: number | null;
+  kill_avg: number | null;
+  assist_avg: number | null;
+  combat_rate_avg: number | null;
+  total_contribute: number | null;
+  like_hero: string | null;
+  max_rate_hero: string | null;
+  streak: number | null;
+  total_game_count: number | null;
 }
 
 // 이번 시즌 랭킹대전 순위 (season_ranking RPC) — 클라이언트 전투 평점(rating) 순
