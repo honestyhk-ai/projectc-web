@@ -65,10 +65,12 @@ export default function Profile() {
     setRefreshing(true);
     setRefreshMsg(null);
     try {
-      // 공식 전적(rec) + 최근 게임(원본 wqlav 직접 조회) 동시 갱신. 하나가 실패해도 나머지는 반영.
+      // 공식 전적(rec, 엣지함수) + 최근 게임(lcmql 동기화 데이터 재조회) 동시 갱신.
+      // 최근게임은 player_recent_games RPC 재조회 → 마지막 30분 sync 분까지 즉시 반영.
+      // (방금 한 게임까지 원본 즉시 당겨오는 refresh-games 엣지함수는 wqlav 시크릿 필요라 보류)
       const [recRes, gamesRes] = await Promise.allSettled([
         supabase.functions.invoke("refresh-record", { body: { ano } }),
-        supabase.functions.invoke("refresh-games", { body: { ano, limit: 30 } }),
+        supabase.rpc("player_recent_games", { p_ano: ano, p_limit: 30 }),
       ]);
       let ok = false;
       if (recRes.status === "fulfilled" && !recRes.value.error) {
@@ -79,7 +81,7 @@ export default function Profile() {
         }
       }
       if (gamesRes.status === "fulfilled" && !gamesRes.value.error) {
-        const gs = (gamesRes.value.data as { games?: RecentGame[] } | null)?.games;
+        const gs = gamesRes.value.data as RecentGame[] | null;
         if (gs) {
           setGames(gs);
           ok = true;
